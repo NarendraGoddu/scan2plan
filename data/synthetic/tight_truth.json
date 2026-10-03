@@ -1,0 +1,31 @@
+{
+  "room_length_m": 2.8,
+  "room_width_m": 2.4,
+  "room_height_m": 2.45,
+  "floor_area_m2": 6.72,
+  "openings": [
+    {
+      "face": "x1",
+      "kind": "door",
+      "width_m": 0.9,
+      "height_m": 2.0,
+      "sill_m": 0.0,
+      "u0": 0.85,
+      "u1": 1.75,
+      "v0": 0.0,
+      "v1": 2.0
+    }
+  ],
+  "scan_id": "syn_tight",
+  "n_frames": 720,
+  "seed": 7,
+  "camera_height_m": 1.4,
+  "noise": {
+    "pose_noise_m": 0.02,
+    "depth_noise_m": 0.004,
+    "full_res_focal": 1600.0,
+    "focal_drift": 18.0
+  },
+  "depth_scale_m": 0.001,
+  "depth_decimation": 7.5
+}

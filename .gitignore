@@ -11,3 +11,5 @@ out/
 runs/
 *.npz
 *.npy
+# Synthetic archives are ~136 MB and regenerate deterministically from synth.py
+data/synthetic/*.zip

@@ -1,0 +1,347 @@
+"""Dimensioned room geometry from segmented planes.
+
+This is where planes become a floor plan:
+
+  1. Establish a 2D basis in the floor plane, so the horizontal axes are a
+     deliberate choice rather than an accident of which world axis happened to
+     vary least.
+  2. Project each vertical wall onto that basis. A vertical plane seen from
+     above is a *line*, and the room lies on one side of it.
+  3. Merge wall fragments belonging to the same physical wall. Segmentation
+     legitimately returns several coplanar fragments per wall, and a four-sided
+     room with two fragments on each long wall must still yield four corners.
+  4. Intersect the half-planes to get the room polygon.
+  5. Derive per-wall lengths, floor area and ceiling height.
+
+Step 4 is the load-bearing one. Intersecting wall half-planes rather than
+clustering wall segments is what makes the output a *room* instead of a bag of
+planes: the fact that a wall is a boundary the interior lies behind is much
+stronger evidence than the similarity of two wall fragments.
+
+Coordinates: alpha/beta are horizontal offsets along an orthonormal basis, so
+one alpha unit is one metre and polygon area is real floor area. The vertical
+is kept separate, with the floor plane as the datum.
+"""
+
+from __future__ import annotations
+
+import math
+from dataclasses import dataclass, field
+
+import numpy as np
+from scipy.spatial import HalfspaceIntersection, QhullError
+
+from .segment import Plane
+
+# A plane this close to horizontal carries no usable line in the floor plane.
+MIN_WALL_HORIZONTAL_NORM = 0.25
+
+# Walls within this many degrees of one another are treated as parallel.
+PARALLEL_TOL_DEG = 12.0
+
+# Parallel walls further apart than this are distinct walls, not fragments of
+# one. A 3 m room with a 0.5 m jog must report two lines, not average them.
+MAX_FRAGMENT_MERGE_M = 0.45
+
+
+@dataclass
+class Wall:
+    """One wall of the room, as a line in floor coordinates.
+
+    The line is `normal . (alpha, beta) = offset`, and `inward` records which
+    side the room is on -- that is not recoverable from the planes alone, since
+    a set of lines bounds two opposite regions and only one is the room.
+    """
+
+    normal: np.ndarray
+    offset: float
+    support: int
+    rms_m: float
+    inward: bool = True
+    length_m: float = 0.0
+    n_fragments: int = 1
+
+    def distance_to(self, ab: np.ndarray) -> float:
+        """Absolute distance from a floor-coordinate point to this wall line."""
+        return abs(float(self.normal @ np.asarray(ab, dtype=np.float64) - self.offset))
+
+    def uncertainty_m(self) -> float:
+        """1-sigma on the wall position from residual and support.
+
+        Residual scatter over sqrt(support) is the honest form: fifty agreeing
+        frames should hold the wall more firmly than one bad frame.
+        """
+        return float(self.rms_m / max(math.sqrt(max(self.support, 1)), 1.0))
+
+
+@dataclass
+class RoomPlan:
+    """A dimensioned room plus the numbers derived from it."""
+
+    basis_a: np.ndarray
+    basis_b: np.ndarray
+    up: np.ndarray
+    walls: list[Wall] = field(default_factory=list)
+    vertices_ab: np.ndarray = field(default_factory=lambda: np.zeros((0, 2)))
+    vertices_world: np.ndarray = field(default_factory=lambda: np.zeros((0, 3)))
+    edge_lengths_m: list[float] = field(default_factory=list)
+    edge_wall_index: list[int] = field(default_factory=list)
+    floor_area_m2: float = 0.0
+    perimeter_m: float = 0.0
+    floor_height_m: float = 0.0
+    ceiling_height_m: float | None = None
+    notes: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        out = {
+            "basis": {
+                "a": [round(float(x), 6) for x in self.basis_a],
+                "b": [round(float(x), 6) for x in self.basis_b],
+                "up": [round(float(x), 6) for x in self.up],
+            },
+            "vertices_world": [
+                [round(float(v[0]), 4), round(float(v[1]), 4), round(float(v[2]), 4)]
+                for v in self.vertices_world
+            ],
+            "floor_area_m2": round(self.floor_area_m2, 4),
+            "perimeter_m": round(self.perimeter_m, 4),
+            "floor_height_m": round(self.floor_height_m, 4),
+            "ceiling_height_m": (
+                None if self.ceiling_height_m is None else round(self.ceiling_height_m, 4)
+            ),
+            "walls": [],
+            "notes": self.notes,
+        }
+        for i, w in enumerate(self.walls):
+            length = self.edge_lengths_m[i] if i < len(self.edge_lengths_m) else w.length_m
+            out["walls"].append(
+                {
+                    "normal_ab": [round(float(w.normal[0]), 5), round(float(w.normal[1]), 5)],
+                    "offset_m": round(float(w.offset), 4),
+                    "support": int(w.support),
+                    "length_m": round(float(length), 4),
+                    "position_uncertainty_m": round(float(w.uncertainty_m()), 4),
+                    "n_fragments": int(w.n_fragments),
+                    "constrained_by_edges": [
+                        j for j, wi in enumerate(self.edge_wall_index) if wi == i
+                    ],
+                }
+            )
+        return out
+
+
+def floor_basis(up: np.ndarray, positions: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Two orthonormal horizontal directions, chosen deterministically.
+
+    e_a follows the axis along which the walk spreads most, which conditions
+    the intersection better than an arbitrary axis would. Signs are fixed so
+    repeated runs agree, which matters because the baseline and the fixed run
+    are diffed against each other.
+    """
+    u = up / (np.linalg.norm(up) + 1e-12)
+    p = positions - (positions @ u)[:, None] * u[None, :]
+    if p.shape[0] >= 3 and np.linalg.norm(p) > 1e-9:
+        cov = p.T @ p / max(p.shape[0] - 1, 1)
+        w, v = np.linalg.eigh(cov)
+        a = v[:, int(np.argmax(w))]
+    else:
+        a = np.array([1.0, 0.0, 0.0])
+    a = a - float(a @ u) * u
+    na = float(np.linalg.norm(a))
+    if na < 1e-9:
+        a = np.cross(u, np.array([0.0, 0.0, 1.0]))
+        na = float(np.linalg.norm(a))
+        if na < 1e-9:
+            a = np.cross(u, np.array([1.0, 0.0, 0.0]))
+            na = float(np.linalg.norm(a))
+    a = a / na
+    b = np.cross(u, a)
+    if a[int(np.argmax(np.abs(a)))] < 0:
+        a, b = -a, -b
+    return a, b
+
+
+def wall_from_plane(
+    plane: Plane, a: np.ndarray, b: np.ndarray, interior_ab: np.ndarray
+) -> Wall | None:
+    """Convert a near-vertical plane into a floor-coordinate wall line.
+
+    With alpha/beta measured from the world origin, a point on the wall is
+    p = alpha*a + beta*b, so the plane equation n.p = d becomes
+    (n.a)*alpha + (n.b)*beta = d. Dividing through by the horizontal norm of n
+    puts the line at unit scale.
+    """
+    n = plane.normal / (np.linalg.norm(plane.normal) + 1e-12)
+    n_ab_raw = np.array([float(n @ a), float(n @ b)])
+    norm = float(np.linalg.norm(n_ab_raw))
+    if norm < MIN_WALL_HORIZONTAL_NORM:
+        return None
+    n_ab = n_ab_raw / norm
+    offset = float(plane.offset) / norm
+    w = Wall(normal=n_ab, offset=offset, support=plane.support, rms_m=plane.rms_m)
+    w.inward = bool(float(n_ab @ interior_ab - offset) < 0.0)
+    return w
+
+
+def merge_wall_fragments(walls: list[Wall]) -> list[Wall]:
+    """Collapse coplanar fragments of one wall into a single wall.
+
+    Two fragments merge when they are parallel, bound the room on the same side,
+    and lie close *along the shared normal*. Measuring separation along the
+    normal is what keeps two parallel walls 3 m apart distinct while joining
+    fragments 8 cm apart.
+    """
+    cos_tol = math.cos(math.radians(PARALLEL_TOL_DEG))
+    kept: list[Wall] = []
+    for w in sorted(walls, key=lambda x: -x.support):
+        merged = False
+        for k in kept:
+            if float(k.normal @ w.normal) < cos_tol:
+                continue
+            if k.inward != w.inward:
+                continue
+            if abs(k.offset - w.offset) > MAX_FRAGMENT_MERGE_M:
+                continue
+            total = k.support + w.support
+            k.offset = (k.offset * k.support + w.offset * w.support) / total
+            k.rms_m = math.sqrt(
+                (k.rms_m**2 * k.support + w.rms_m**2 * w.support) / total
+            )
+            k.support = total
+            k.n_fragments += 1
+            merged = True
+            break
+        if not merged:
+            kept.append(w)
+    return kept
+
+
+def intersect_halfplanes(walls: list[Wall], interior: np.ndarray) -> np.ndarray | None:
+    """Intersect the interior half-planes, returning polygon vertices.
+
+    scipy needs a strictly interior seed point, and real constraint sets are
+    frequently marginally inconsistent: two fragments of the same wall
+    disagreeing by a centimetre can make the region empty or unbounded. On
+    failure the least-supported constraints are dropped one at a time until a
+    region appears, which keeps the best-observed walls in the answer and
+    records in `notes` that something had to go.
+    """
+    live = list(walls)
+    while len(live) >= 3:
+        # scipy solves {x : A.x + b <= 0}. `inward` was decided by testing
+        # n.x - offset < 0 at the interior point, so the inward half-plane is
+        # exactly A = n, b = -offset, and the outward one is its negation.
+        A = np.array([w.normal if w.inward else -w.normal for w in live])
+        b = np.array([-w.offset if w.inward else w.offset for w in live])
+        # scipy takes ONE (ndim, ndim+1) matrix whose last column is the offset.
+        # Passing A and b separately makes it infer the wrong dimensionality and
+        # it rejects the interior point.
+        halfspaces = np.hstack([A, b[:, None]])
+        try:
+            pts = np.array(HalfspaceIntersection(halfspaces, interior).intersections)
+            if len(pts) >= 3:
+                return pts
+        except (QhullError, ValueError):
+            pass
+        weakest = min(range(len(live)), key=lambda i: live[i].support)
+        live.pop(weakest)
+    return None
+
+
+def order_polygon(poly: np.ndarray) -> np.ndarray:
+    """Sort vertices by angle about their centroid, counter-clockwise."""
+    c = poly.mean(axis=0)
+    return np.argsort(np.arctan2(poly[:, 1] - c[1], poly[:, 0] - c[0]))
+
+
+def polygon_area(poly: np.ndarray) -> float:
+    """Shoelace area."""
+    x, y = poly[:, 0], poly[:, 1]
+    return 0.5 * float(np.dot(x, np.roll(y, -1)) - np.dot(y, np.roll(x, -1)))
+
+
+def build_room_plan(
+    planes: list[Plane],
+    up: np.ndarray,
+    camera_positions: np.ndarray,
+    min_wall_support: int = 2,
+) -> RoomPlan:
+    """Assemble a dimensioned room from segmented planes.
+
+    `camera_positions` is used only to find a point known to lie inside the
+    room, which fixes which side of each wall line the interior occupies.
+    """
+    u = up / (np.linalg.norm(up) + 1e-12)
+    pos = np.asarray(camera_positions, dtype=np.float64).reshape(-1, 3)
+    a, b = floor_basis(u, pos)
+
+    centre = np.median(pos, axis=0) if len(pos) else np.zeros(3)
+    interior = np.array([float(centre @ a), float(centre @ b)])
+
+    floor = next((p for p in planes if p.kind == "floor"), None)
+    ceiling = next((p for p in planes if p.kind == "ceiling"), None)
+
+    # Floor plane as the vertical datum, expressed as a height along u.
+    if floor is not None:
+        denom = float(floor.normal @ u)
+        if abs(denom) > 1e-6:
+            floor_h = float(floor.offset) / denom
+        else:
+            floor_h = 0.0
+    else:
+        floor_h = 0.0
+
+    plan = RoomPlan(basis_a=a, basis_b=b, up=u, floor_height_m=floor_h)
+    if floor is None:
+        plan.notes.append("no floor plane recovered")
+
+    raw: list[Wall] = []
+    for p in planes:
+        if p.kind != "wall" or p.support < min_wall_support:
+            continue
+        w = wall_from_plane(p, a, b, interior)
+        if w is not None:
+            raw.append(w)
+
+    if len(raw) < 3:
+        plan.notes.append(f"only {len(raw)} usable wall planes; need at least 3")
+        return plan
+
+    walls = merge_wall_fragments(raw)
+    plan.walls = walls
+
+    poly = intersect_halfplanes(walls, interior)
+    if poly is None or len(poly) < 3:
+        plan.notes.append("wall half-planes did not bound a region")
+        return plan
+
+    poly = poly[order_polygon(poly)]
+    plan.vertices_ab = poly
+    plan.vertices_world = np.array([p[0] * a + p[1] * b + floor_h * u for p in poly])
+    plan.floor_area_m2 = abs(polygon_area(poly))
+
+    # Each polygon edge is bounded by one wall; match them by proximity.
+    nxt = np.roll(poly, -1, axis=0)
+    edges = nxt - poly
+    mids = poly + edges / 2.0
+    lengths, which = [], []
+    for e, m in zip(edges, mids):
+        lengths.append(float(np.linalg.norm(e)))
+        j = int(np.argmin([w.distance_to(m) for w in walls]))
+        which.append(j)
+        walls[j].length_m = max(walls[j].length_m, lengths[-1])
+    plan.edge_lengths_m = lengths
+    plan.edge_wall_index = which
+    plan.perimeter_m = float(np.sum(lengths))
+
+    if ceiling is not None:
+        dn = float(ceiling.normal @ u)
+        if abs(dn) > 1e-6:
+            h = float(ceiling.offset) / dn - floor_h
+            if 1.5 < h < 6.0:
+                plan.ceiling_height_m = h
+            else:
+                plan.notes.append(f"implausible ceiling height {h:.3f} m, omitted")
+        else:
+            plan.notes.append("ceiling plane not horizontal enough to measure height")
+    return plan
