@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Raw captures are large and must not enter git history.
+# Fetch them with: python scripts/fetch_sample_data.py
+data/raw/
+*.zip
+*.mp4
+out/
+runs/
+*.npz
+*.npy
