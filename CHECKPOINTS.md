@@ -13,7 +13,7 @@ Deadline: **5 Oct, 10:00 IST**. One commit per checkpoint, in order.
 | CP1 | Ingest + scale calibration | **done** | 0.9997 mm/unit, verified on 3 archives |
 | CP2 | Drift measurement + gravity fix | **done** | no systematic drift found (R²≈0); ~32-44 mm random scatter |
 | CP2b | Plane-anchored correction + ablation | todo | on the critical path |
-| CP3 | Plane segmentation | todo | floor/ceiling/walls |
+| CP3 | Plane segmentation | **done** | 1 floor + 1 ceiling + walls on all 3 archives |
 | CP4 | Dimensioned geometry | todo | walls, ceiling height, area |
 | CP5 | Opening detection | todo | missed and phantom both score as miss |
 | CP6 | Confidence intervals | todo | on every measurement |
@@ -29,6 +29,47 @@ Deadline: **5 Oct, 10:00 IST**. One commit per checkpoint, in order.
 | CP16 | Photo/video tier paths | todo | your flat, GT 7T |
 
 ## Done
+
+### CP3 — Plane segmentation
+
+Per-frame RANSAC peeling → cross-frame clustering → inlier-weighted TLS refit →
+classify. Three bugs, each found by checking physics rather than trusting code:
+
+1. **`canonical_plane` returned a different plane than it was given.**
+   `orthonormalize` canonicalises the *sign* of the normal, so scaling a normal
+   while keeping the old offset describes the mirror surface:
+   `(n=(0,-1,0), d=2.5)` came back as `(0,1,0), d=2.5`. Fixed by scaling
+   without touching sign, then flipping sign and offset together.
+2. **`cluster_planes` never canonicalised.** RANSAC and SVD both return a
+   sign-arbitrary normal, so the same wall seen from two sides compared 180°
+   apart and refused to merge. This was the actual cause of fragmented floors.
+3. **The vertical axis sign was inconsistent across captures** (−Y, +Y, −Y),
+   which relabelled `floor_only`'s floor as a ceiling 1.27 m overhead instead
+   of raising. `orient_from_horizontal_planes` now derives the sign from the
+   fact that a handheld sensor sits above the floor.
+
+Structural prior: **a room has one floor and one ceiling.** Per-frame fits
+shattered `with_ceiling`'s floor into four parallel planes spanning 0.63–1.57 m
+below camera, so any pairwise ceiling height disagreed by a metre.
+`consolidate_horizontal` anchors on the best-supported member, folds in the
+rest, and keeps the rejected spread as `member_height_spread_m` — that spread is
+real uncertainty about the surface, not bookkeeping.
+
+Results at `frame_stride=8, point_stride=4`:
+
+| Archive | Floor height | Floor rms | Ceiling | Ceiling rms |
+|---|---|---|---|---|
+| single_room | −1.450 m | 9.7 mm | — | — |
+| floor_only | −1.274 m | 94.9 mm | — | — |
+| with_ceiling | −0.798 m | 61.3 mm | +1.487 m | 8.1 mm |
+
+`with_ceiling` ceiling height **2.285 m** (physically plausible).
+
+**Known gap, not a pass.** Floor residual scatter of 61–95 mm is far outside
+the 1.5 cm ceiling-height gate. `with_ceiling`'s floor in particular has only
+17.6% frame support and looks contaminated, while its ceiling is clean at
+8.1 mm — so the 2.285 m figure inherits the floor's error. Ceiling height is
+therefore *plausible*, not *accurate*, and is reported as such.
 
 ### CP1 — Ingest and depth-scale calibration
 
