@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Room Capture Protocol - Two-Person Field Kit</title>
+<style>
+  @page { size: A4; margin: 10mm 10mm 11mm 10mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; font-size: 8.5pt; line-height: 1.24; color: #111; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  h1 { font-size: 15.5pt; margin: 0 0 1.4mm 0; letter-spacing: -0.3px; }
+  h2 { font-size: 10pt; margin: 0 0 2mm 0; padding: 1.2mm 2.2mm; background: #111; color: #fff; border-radius: 1.2mm; text-transform: uppercase; letter-spacing: 0.6px; }
+  h3 { font-size: 9pt; margin: 2.4mm 0 1mm 0; }
+  p { margin: 0 0 1.5mm 0; }
+  .sub { color: #444; font-size: 8.1pt; margin: 0 0 3mm 0; }
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+  table { width: 100%; border-collapse: collapse; margin: 0 0 2.4mm 0; }
+  th { background: #ececec; text-align: left; padding: 1mm 1.6mm; font-size: 7.6pt; text-transform: uppercase; letter-spacing: 0.3px; border-bottom: 0.4mm solid #111; }
+  td { padding: 0.8mm 1.5mm; border-bottom: 0.2mm solid #ccc; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .tot td { font-weight: 700; background: #f4f4f4; border-top: 0.4mm solid #111; }
+  .box { border: 0.4mm solid #111; border-radius: 1.2mm; padding: 1.7mm 2.2mm; margin: 0 0 2.1mm 0; }
+  .box.gray { background: #f4f4f4; }
+  .box.warn { border-width: 0.8mm; border-left: 3mm solid #111; background: #fafafa; }
+  .box h3 { margin-top: 0; }
+  ul, ol { margin: 0 0 1.6mm 0; padding-left: 4.6mm; }
+  li { margin-bottom: 0.7mm; }
+  .chk { list-style: none; padding-left: 0; }
+  .chk li { padding-left: 5.6mm; text-indent: -5.6mm; margin-bottom: 0.9mm; }
+  .chk li:before { content: "\2610\00a0\00a0"; font-size: 9.5pt; }
+  .role { border: 0.4mm solid #111; border-radius: 1.2mm; padding: 0; margin-bottom: 2.4mm; overflow: hidden; }
+  .role > .hdr { background: #111; color: #fff; padding: 1.3mm 2.4mm; font-weight: 700; font-size: 9pt; }
+  .role > .hdr .t { float: right; font-weight: 400; font-size: 7.8pt; opacity: 0.85; }
+  .role .body { padding: 1.7mm 2.2mm; }
+  .tag { display: inline-block; background: #111; color: #fff; padding: 0.2mm 1.3mm; border-radius: 0.8mm; font-size: 7pt; font-weight: 700; letter-spacing: 0.3px; vertical-align: 1px; }
+  .tag.b { background: #666; }
+  code { font-family: Consolas, monospace; font-size: 7.9pt; background: #eee; padding: 0 0.8mm; }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <h1>Room Capture Protocol</h1>
+  <p class="sub">Two-person field kit &mdash; 3BHK dimensional survey. Print this and carry it.
+  Every number here is decided for you; do not improvise during the walk.</p>
+
+  <div class="box warn">
+    <h3>The four numbers that matter</h3>
+    <table>
+      <tr><td><b>Phone height</b></td><td class="num">1.40 m</td><td>chest, camera <b>level</b> &mdash; never tilted up or down</td></tr>
+      <tr><td><b>Pass A standoff</b></td><td class="num">1.00 m</td><td>one photo every <b>0.30 m</b> along the wall</td></tr>
+      <tr><td><b>Pass B standoff</b></td><td class="num">1.80 m</td><td>one photo every <b>0.50 m</b> along the wall</td></tr>
+      <tr><td><b>Scale marker</b></td><td class="num">1.000 m</td><td>two tape marks exactly 1 m apart, on the floor, in frame</td></tr>
+    </table>
+  </div>
+
+  <h2>Your two jobs</h2>
+  <div class="role">
+    <div class="hdr">PERSON A &mdash; CAMERA<span class="t">never stops moving sideways</span></div>
+    <div class="body">
+      <ul>
+        <li>Holds the phone <b>vertically</b>, 1.40 m, camera level, on the <b>1&times; lens</b>.</li>
+        <li>Performs every photo pass on page 3, in the order given.</li>
+        <li>Shoots <b>continuously while walking</b>. Do not stop to compose.</li>
+        <li>Photographs the measurement card each time <span class="tag b">B</span> reads a number out.</li>
+        <li>Calls <b>"clear"</b> before shooting so <span class="tag b">B</span> steps out of frame.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="role">
+    <div class="hdr">PERSON B &mdash; SURVEY &amp; MEASURE<span class="t">never in the photo</span></div>
+    <div class="body">
+      <ul>
+        <li><b>Before shooting:</b> walk the room, count corners, doors, windows, mirrors and
+            false ceiling. Call the list aloud so <span class="tag a">A</span> knows the target count.</li>
+        <li>Lay the <b>1 m scale marker</b> on the floor at the room start.</li>
+        <li>Stick <b>masking-tape marks</b> on the floor at every corner. These anchor the tape later.</li>
+        <li><b>Park out of frame</b> during shooting, or leave the room entirely.</li>
+        <li><b>After shooting:</b> measure with the 5 m tape, writing every number on the card.</li>
+        <li><b>Tick the acceptance checklist</b> (page 6) before leaving the room.</li>
+        <li>Write the <b>room name</b> on the card before measuring. Never measure an unnamed room.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="box gray">
+    <h3>Why you cannot do both jobs at once</h3>
+    <p>Shooting and measuring interfere: a tape left in frame pollutes the photo set, and a
+    measuring posture breaks the walking rhythm the photo passes depend on. So the room cycle is
+    always <b>shoot first, measure second</b>. Never interleave them.</p>
+  </div>
+
+  <h2>How many rooms</h2>
+  <p>Photographing is <b>fast</b> &mdash; about 12 minutes for a mid-size room. Measuring is
+  <b>slow</b> &mdash; about 28 minutes. So capture <b>every</b> room you can reach, but only
+  measure the top three. A room photographed but not measured still helps; a room measured but not
+  photographed helps nothing at all.</p>
+  <table>
+    <tr><th>Tier</th><th>Rooms</th><th class="num">Photos</th><th class="num">Measure?</th><th class="num">Time</th></tr>
+    <tr><td><b>1 &mdash; full</b></td><td>Living room, Master bedroom</td><td class="num">~167 ea</td><td class="num">yes, full</td><td class="num">55 min</td></tr>
+    <tr><td><b>2 &mdash; standard</b></td><td>Kitchen, Bedroom 2</td><td class="num">~110 ea</td><td class="num">yes, full</td><td class="num">40 min</td></tr>
+    <tr><td><b>3 &mdash; quick</b></td><td>Dining, Bedroom 3, passage</td><td class="num">~55 ea</td><td class="num">no</td><td class="num">8 min ea</td></tr>
+    <tr><td><b>skip</b></td><td>Bathrooms, balcony, utility</td><td class="num">&mdash;</td><td class="num">no</td><td class="num">0</td></tr>
+    <tr class="tot"><td></td><td>Whole flat, realistic total</td><td class="num">~600</td><td class="num">3 rooms</td><td class="num">2.5&ndash;3 h</td></tr>
+  </table>
+  <p class="sub">Skip the bathrooms: small, cluttered, mirror-heavy, and the lowest value per
+  minute in the flat. Revisit only if you are well ahead of schedule.</p>
+</div>
+
+<div class="page">
+  <h1>The room cycle</h1>
+  <p class="sub">Steps 1&ndash;5 for every room. Never skip step 1 &mdash; it is what stops you
+  photographing a room with the fan spinning and a door half shut.</p>
+
+  <div class="box">
+    <h3>Step 1 &mdash; Make the room still <span class="tag b">B leads &middot; 30 s</span></h3>
+    <ul class="chk">
+      <li>Ceiling fan <b>OFF</b>. Pedestal fan <b>OFF</b>. Air conditioning off.</li>
+      <li>Remove or push down loose cushions, clothes on chairs, movable floor objects.</li>
+      <li>Curtains <b>fully open or fully closed &mdash; then do not touch them</b> for this room.</li>
+      <li>Doors and windows <b>open</b>. You need the reveal and the true opening width.</li>
+      <li>Switch on every light in this room now and leave them on for the whole session.</li>
+      <li>No person, no pet, no tripod anywhere in frame.</li>
+    </ul>
+  </div>
+
+  <div class="box">
+    <h3>Step 2 &mdash; Survey and count <span class="tag b">B leads &middot; 60 s</span></h3>
+    <p>Walk the perimeter once, calling out and counting:</p>
+    <ul class="chk">
+      <li>Number of <b>corners</b> &mdash; write the number on the card</li>
+      <li>Every <b>door</b> and every <b>window</b>, with sill heights</li>
+      <li>Every <b>mirror</b> &mdash; flag each one; they corrupt depth silently</li>
+      <li><b>False / POP ceiling?</b> If yes, note it &mdash; ceiling height becomes ambiguous</li>
+      <li>Any <b>damage</b>: cracks, chips, missing tiles, stains, water marks</li>
+    </ul>
+    <p><b>These counts are A's shot targets.</b> Without them A does not know when to stop.</p>
+  </div>
+
+  <div class="box">
+    <h3>Step 3 &mdash; Lay the anchors <span class="tag b">B does &middot; 90 s</span></h3>
+    <ul class="chk">
+      <li>Lay <b>1.000 m of tape flat on the floor</b> with a masking-tape mark at each end, near
+          a corner but inside the room. This is the scale reference &mdash; do not skip it.</li>
+      <li>Stick a small masking-tape cross on the floor at <b>each corner</b>. These are the tape's
+          anchor points and the photo-to-measurement correspondence.</li>
+    </ul>
+  </div>
+
+  <div class="box gray">
+    <h3>Step 4 &mdash; Photograph <span class="tag a">A does &middot; ~12 min</span></h3>
+    <p>Run the eight passes on the next page, in order. <span class="tag b">B</span> leaves the
+    room or parks in a corner well out of frame. <b>A</b> starts at the scale marker and walks
+    <b>anticlockwise</b>, one full loop per pass, so every pass covers the same walls in the same
+    order &mdash; that is what makes gaps obvious.</p>
+  </div>
+
+  <div class="box">
+    <h3>Step 5 &mdash; Measure <span class="tag b">B leads &middot; ~28 min</span></h3>
+    <p>Tier 1 and Tier 2 rooms only &mdash; full list on page 5. <span class="tag a">A</span>
+    photographs the card with each number legible, filling the frame.</p>
+  </div>
+
+  <div class="box warn">
+    <h3>If you have only 90 minutes, cut in this order</h3>
+    <ol>
+      <li>Living room: passes 1, 2, corners, openings, scale marker. Then measure it.</li>
+      <li>Master bedroom: same. Then measure it.</li>
+      <li>Stop there. Everything else is optional &mdash; two rooms done properly beats seven done badly.</li>
+    </ol>
+    <p style="margin-bottom:0">Never photograph a room you will not measure, and never measure a
+    room you did not photograph.</p>
+  </div>
+</div>
+
+<div class="page">
+  <h1>The eight passes &mdash; angles and counts</h1>
+  <p class="sub">Per room. Counts assume a 4.5 &times; 3.6 m room (16 m perimeter, 4 corners,
+  2 doors, 2 windows, 5 features). Scale the shot counts by your wall length.</p>
+
+  <table>
+    <tr><th>#</th><th>Pass</th><th>How</th><th class="num">Shots</th><th class="num">Time</th></tr>
+    <tr>
+      <td><b>1</b></td><td><b>Perimeter A</b><br><span class="sub" style="margin:0">the essential one</span></td>
+      <td>1.00 m off the wall, phone at 1.40 m, <b>moving sideways only</b>, facing the wall, one photo
+          every <b>0.30 m</b> (about one slow step). Full loop.</td>
+      <td class="num">~55</td><td class="num">3 min</td>
+    </tr>
+    <tr>
+      <td><b>2</b></td><td><b>Perimeter B</b></td>
+      <td>From the opposite wall, ~1.80 m out, same rhythm, one photo every <b>0.50 m</b>.
+          A second ring breaks the degenerate single-loop path &mdash; this is what lets scale
+          separate cleanly from the two wall directions.</td>
+      <td class="num">~33</td><td class="num">2 min</td>
+    </tr>
+    <tr>
+      <td><b>3</b></td><td><b>Corners</b></td>
+      <td>Stand <i>inside</i> each corner. Three photos: one at each wall, one straight at the
+          junction. <b>The most important 12 shots in the room</b> &mdash; the wall-wall junction
+          fixes both the room polygon and the angle between walls.</td>
+      <td class="num">12</td><td class="num">1 min</td>
+    </tr>
+    <tr>
+      <td><b>4</b></td><td><b>Junction tilts</b></td>
+      <td>At each corner, tilt down for the floor-to-wall seam and up for the ceiling-to-wall seam.
+          A level photo of a wall never shows where it meets the floor.</td>
+      <td class="num">8</td><td class="num">1 min</td>
+    </tr>
+    <tr>
+      <td><b>5</b></td><td><b>Floor pass</b></td>
+      <td>Camera at ~1.7 m, tilted ~45&deg; down, walk <b>across</b> the room with overlap. Skip
+          only if the floor is blank polished stone with no joints.</td>
+      <td class="num">6</td><td class="num">0.5 min</td>
+    </tr>
+    <tr>
+      <td><b>6</b></td><td><b>Ceiling pass</b></td>
+      <td>Tilt ~45&deg; up, small overlapping loop. <b>Only if there is no false ceiling.</b>
+          With a POP ceiling, photograph both levels instead &mdash; see page 4.</td>
+      <td class="num">6</td><td class="num">0.5 min</td>
+    </tr>
+    <tr>
+      <td><b>7</b></td><td><b>Openings</b><br><span class="sub" style="margin:0">highest scoring</span></td>
+      <td>Each door and window, square-on from 1.5 m, <b>5&ndash;6 photos stepping left to right at
+          0.30 m spacing</b>. Include the full height of the opening plus surrounding wall.
+          Openings are the highest-accuracy gate in the entire assessment.</td>
+      <td class="num">~24</td><td class="num">2 min</td>
+    </tr>
+    <tr>
+      <td><b>8</b></td><td><b>Features &amp; damage</b></td>
+      <td>3&ndash;5 overlapping close shots at 0.5&ndash;0.8 m of each switchboard, socket, skirting,
+          cornice, crack, chip and stain. The surface should fill the frame and be in focus.</td>
+      <td class="num">~20</td><td class="num">2 min</td>
+    </tr>
+    <tr class="tot"><td></td><td><b>Tier 1 total</b></td><td>Plus 3 photos of the 1 m scale marker</td><td class="num"><b>~167</b></td><td class="num"><b>12 min</b></td></tr>
+  </table>
+
+  <div class="box warn">
+    <h3>The three mistakes that cost the most</h3>
+    <p><b>1. Panning in place.</b> Standing in the middle and rotating the camera produces almost no
+    geometric information &mdash; rotate-only motion is nearly degenerate. You must
+    <b>translate sideways</b>. Passes 1 and 2 are the only passes that carry real geometry.</p>
+    <p><b>2. Stopping to frame each shot.</b> Every stop-and-compose breaks the overlap chain and
+    wastes the parallax of continuous motion. Walk steadily, shoot roughly every step, review afterwards.</p>
+    <p style="margin-bottom:0"><b>3. Skipping the corners.</b> Every shortcut gets taken at the
+    corners, and corners are exactly what determine a room's shape. Budget the full 12 shots.</p>
+  </div>
+</div>
+
+<div class="page">
+  <h1>Settings, lighting, hazards</h1>
+
+  <h2>Phone settings &mdash; set once, then leave it alone</h2>
+  <table>
+    <tr><th>Setting</th><th>Do this</th><th>Why</th></tr>
+    <tr><td>Lens</td><td><b>1&times; only.</b> Never 0.6&times; ultra-wide, never 2&times;/3&times; zoom</td><td>Ultra-wide has heavy barrel distortion; digital zoom crops and resamples, destroying texture</td></tr>
+    <tr><td>Lens glass</td><td><b>Clean it</b> before you start</td><td>Fingerprints cost more accuracy than any other setting on this page</td></tr>
+    <tr><td>Resolution</td><td>Full resolution, JPEG</td><td>Highest usable texture</td></tr>
+    <tr><td>Exposure</td><td>Lock it, if the phone allows (Pro / Expert mode)</td><td>Auto-exposure pumping between frames is a genuine failure mode on dim walls</td></tr>
+    <tr><td>White balance</td><td>Lock it, if possible</td><td>Keeps colour true for material and damage classification</td></tr>
+    <tr><td>Flash</td><td><b>OFF, always</b></td><td>Flash off a wall at 1 m makes a hotspot with hard falloff &mdash; both kill texture</td></tr>
+    <tr><td>Horizon guide</td><td>Turn <b>on</b> if the phone has one</td><td>Passes 1&ndash;2 require a level camera</td></tr>
+    <tr><td>Storage &amp; battery</td><td>5 GB+ free, battery 100%</td><td>~600 photos is roughly 4.5 GB</td></tr>
+    <tr><td>Orientation lock</td><td>On, <b>portrait</b></td><td>Prevents a mid-session rotation</td></tr>
+  </table>
+
+  <div class="box gray">
+    <h3>Lighting &mdash; pick your moment, do not fix it later</h3>
+    <p><b>Best:</b> overcast, or the hour after sunrise, or the last hour before sunset.
+    <b>Worst:</b> bright sun through a west-facing window, which in an Andhra summer produces hard
+    shadow edges and blown highlights no setting recovers.</p>
+    <ul>
+      <li>Never have a window <b>behind</b> the wall you are shooting &mdash; the wall goes to silhouette.</li>
+      <li>Never let a person's or a fan's shadow fall across a wall you are shooting.</li>
+      <li>Turn <b>off</b> any flickering LED, any TV, and every moving fan before you begin.</li>
+      <li>If a room is dim, <b>switch on its existing lights and stay.</b> Do not chase better light &mdash; you will lose the schedule.</li>
+    </ul>
+  </div>
+
+  <div class="box warn">
+    <h3>Four hazards that silently corrupt results</h3>
+    <p>These do far more damage than any camera setting. Note each one's location: a
+    <i>named</i> limitation is acceptable, a <i>silent</i> wrong number is not.</p>
+    <ol>
+      <li><b>Mirrors.</b> Monocular depth models return a plausible, confident, <b>wrong</b> depth
+          on a mirror instead of failing. Note every mirror. Never trust a measurement taken near one.</li>
+      <li><b>Glass and balcony doors.</b> Same failure, plus see-through geometry.</li>
+      <li><b>POP / false ceiling.</b> A dropped ceiling below the slab makes "ceiling height"
+          ambiguous by 10&ndash;20 cm. Photograph both levels, and <b>state which one you measured</b>.</li>
+      <li><b>Glossy surfaces</b> &mdash; polished granite floor, glossy modular kitchen. Specular
+          reflection leaves no usable texture. Photograph edges and matte areas only.</li>
+    </ol>
+    <p style="margin-bottom:0"><b>Painted featureless walls</b> are the hardest common case &mdash; no
+    texture to match on. Get a light switch, curtain rail, ladder or cornice into shots near bare
+    wall; those are your texture anchors.</p>
+  </div>
+</div>
+
+<div class="page">
+  <h1>Ground truth &mdash; measuring with the 5 m tape</h1>
+  <p class="sub">Tier 1 and Tier 2 rooms only. These numbers are the truth every other number is
+  checked against, so precision matters more than completeness.</p>
+
+  <div class="box warn">
+    <p><b>One rule, and it matters.</b> The tape is your <b>validation</b> reference. The pipeline
+    gets its scale from the <b>1 m marker photographed in the scene</b>. Never calibrate the
+    pipeline against these hand-measured numbers &mdash; that makes the benchmark circular and
+    worthless, and a reviewer checks for exactly this.</p>
+  </div>
+
+  <h2>Measure this list &mdash; about 25 per room</h2>
+  <table>
+    <tr><th>What</th><th class="num">Count</th><th>How</th></tr>
+    <tr><td>Wall lengths, corner to corner at floor level</td><td class="num">4</td><td>Between the masking-tape corner marks. Two per axis.</td></tr>
+    <tr><td>Wall heights, floor to ceiling</td><td class="num">4</td><td>One per wall, at mid-wall, tape held vertical.</td></tr>
+    <tr><td>Floor diagonal</td><td class="num">1</td><td>Corner to opposite corner. Checks whether the room is really rectangular.</td></tr>
+    <tr><td>Opening widths</td><td class="num">3 each</td><td><b>Top, middle and bottom</b> &mdash; openings are often trapezoidal, and that variation is real information.</td></tr>
+    <tr><td>Ceiling height</td><td class="num">3</td><td>Not five. Different parts of the room, and under any false ceiling.</td></tr>
+    <tr><td>Window sill height</td><td class="num">1 each</td><td>Floor to the underside of the sill.</td></tr>
+    <tr><td>Floor landmark positions</td><td class="num">2&ndash;3</td><td>The tape marks already on the floor. Note which corner each sits near.</td></tr>
+    <tr class="tot"><td><b>Total</b></td><td class="num"><b>~25</b></td><td><b>~28 minutes with two people</b></td></tr>
+  </table>
+
+  <div class="box">
+    <h3>Solo measuring technique</h3>
+    <ul>
+      <li><b>Use the masking-tape corner marks as anchors.</b> Hook the tape's metal end on a mark,
+          pull to the next mark, read, write, step. You never need a second hand at the far end.</li>
+      <li><b>For runs over 5 m</b>, step the tape in marked segments and sum them. Mark every
+          intermediate point so a later re-measure is reproducible.</li>
+      <li><b>Pull the tape taut and straight.</b> A sagging tape reads short; a twisted one reads long. Sight along it.</li>
+      <li><b>Read at eye level</b>, directly above the tape, never at an angle.</li>
+      <li>Record <b>millimetres</b>, not centimetres, with leading zeros: <code>1245</code>, not <code>1 245</code>.</li>
+      <li><b>Measure every wall length twice</b>, independently, and write both numbers. If they differ
+          by more than 5 mm, measure a third time and keep all three.</li>
+    </ul>
+  </div>
+
+  <div class="box">
+    <h3>Measurement card &mdash; one per room</h3>
+    <p>A single index card in large handwriting. <span class="tag a">A</span> photographs it after
+    every five readings, filling the frame, so each number stays permanently linked to its room.</p>
+    <table>
+      <tr><td>Room name (written <b>before</b> measuring)</td><td>LIVING ROOM</td></tr>
+      <tr><td>Date</td><td>04 Oct</td></tr>
+      <tr><td>Wall lengths L1 / L2 / W1 / W2</td><td>4250, 4180 / 3620, 3640 mm</td></tr>
+      <tr><td>Wall heights H1&ndash;H4</td><td>2740, 2755, 2730, 2748 mm</td></tr>
+      <tr><td>Diagonal D1</td><td>5582 mm</td></tr>
+      <tr><td>Door widths (top/mid/bot)</td><td>905 / 900 / 902 mm</td></tr>
+      <tr><td>Window widths (top/mid/bot)</td><td>1450 / 1455 / 1448 mm</td></tr>
+      <tr><td>Ceiling heights, 3 spots</td><td>2740, 2755, 2730 mm</td></tr>
+      <tr><td>Sill heights</td><td>900 mm</td></tr>
+      <tr><td>False ceiling? which height measured?</td><td>YES &mdash; POP at 2400, slab not visible</td></tr>
+      <tr><td>Mirrors and glass, located</td><td>1 mirror dining wall; 1 glass door balcony</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="page">
+  <h1>Acceptance checklist &mdash; tick before leaving each room</h1>
+  <p class="sub"><span class="tag b">B</span> owns this page. Do not move to the next room until
+  every line is ticked or explicitly given up. A room photographed badly is a lost room &mdash; you
+  will not come back for it.</p>
+
+  <h2>Scene</h2>
+  <ul class="chk">
+    <li>Fan off, AC off, no moving person, no pet</li>
+    <li>Doors and windows open</li>
+    <li>Curtains fully open <i>or</i> fully closed, and untouched since</li>
+    <li>All room lights on</li>
+  </ul>
+
+  <h2>Coverage</h2>
+  <ul class="chk">
+    <li>Pass 1 complete &mdash; full loop at 1.0 m, spacing 0.30 m</li>
+    <li>Pass 2 complete &mdash; second loop from the opposite wall at 1.8 m</li>
+    <li>All <b>four corners</b> shot &mdash; 3 photos each, standing inside the corner</li>
+    <li>Floor-to-wall and ceiling-to-wall tilts at each corner</li>
+    <li>Floor pass done</li>
+    <li>Ceiling pass done, <b>or</b> POP ceiling photographed at both levels</li>
+    <li>Every door photographed &mdash; 5&ndash;6 photos each, square-on, full height</li>
+    <li>Every window photographed &mdash; 5&ndash;6 photos each</li>
+    <li>Every feature and every damage item photographed at 0.5&ndash;0.8 m</li>
+  </ul>
+
+  <h2>Anchors &mdash; the two things that cannot be redone later</h2>
+  <ul class="chk">
+    <li><b>1.000 m scale marker</b> on the floor, photographed in 3 frames with the tape legible</li>
+    <li>Masking-tape corner marks placed and their positions noted</li>
+  </ul>
+
+  <h2>Ground truth &mdash; Tier 1 and Tier 2 only</h2>
+  <ul class="chk">
+    <li>Room name on the card <b>before</b> measuring</li>
+    <li>All ~25 measurements written in millimetres</li>
+    <li>Every wall length measured twice, both numbers written</li>
+    <li>Opening widths taken at top, middle <i>and</i> bottom</li>
+    <li>False ceiling noted, and which height was measured stated explicitly</li>
+    <li>Every mirror and glass surface located and noted</li>
+    <li>Card photographed filling the frame</li>
+  </ul>
+
+  <h2>Technical</h2>
+  <ul class="chk">
+    <li>Zero photos taken on 0.6&times; ultra-wide or 2&times; zoom</li>
+    <li>EXIF preserved &mdash; no screenshots, no re-saving, nothing sent through WhatsApp or Instagram</li>
+    <li>First photo of the room checked for correct orientation</li>
+    <li>Photo count matches the expected pass count &mdash; 0 means a broken loop, 300 means composing instead of sweeping</li>
+  </ul>
+</div>
+
+<div class="page">
+  <h1>Wrap-up</h1>
+  <p class="sub">Troubleshooting for when the session goes sideways, and the checks to run
+  before you leave the building.</p>
+
+  <div class="box warn">
+    <h3>If something goes wrong</h3>
+    <ul>
+      <li><b>Fan will not stop, curtain will not stay</b> &mdash; photograph anyway, note it, move on. Do not lose the schedule.</li>
+      <li><b>Room is far too dark</b> &mdash; turn on its lights and continue. Never use flash.</li>
+      <li><b>You are running late</b> &mdash; drop passes 5 and 6 (floor and ceiling) first, then
+          shorten pass 2 to a half loop. <b>Never drop corners or openings.</b></li>
+      <li><b>A wall is blank painted plaster</b> &mdash; get the switchboard, cornice, skirting or
+          door frame into shots near it. Those anchors are what make it reconstructable.</li>
+      <li><b>You find damage worth documenting well</b> &mdash; spend the extra 2 minutes. Take 5
+          overlapping close shots plus one wide shot for context, with a tape in frame for scale.</li>
+    </ul>
+  </div>
+
+  <div class="box">
+    <h3>Before you leave the flat &mdash; final 10-minute check</h3>
+    <ul class="chk">
+      <li>Photo count is roughly what you expected (~600 for the full flat)</li>
+      <li>Every measured room has its card photographed with the room name legible</li>
+      <li>The 1 m scale marker was photographed in at least two rooms</li>
+      <li>Photos were <b>not</b> sent through WhatsApp, Instagram or any compressor</li>
+      <li>Everything backed up to a second location before you leave</li>
+      <li>You roughly know how many photos each room has, in case a set needs re-shooting</li>
+    </ul>
+  </div>
+
+  <div class="box gray">
+    <h3>Hard cutoff</h3>
+    <p style="margin-bottom:0">If you reach <b>13:00</b> and the Tier 1 rooms are not finished,
+    stop photographing new rooms and start measuring what you already have.
+    A measured room you photographed beats an unmeasured room you did not.
+    Everything below that line can be recorded as a known gap &mdash; and an honest gap costs
+    far less than a broken pipeline.</p>
+  </div>
+</div>
+
+</body>
+</html>
