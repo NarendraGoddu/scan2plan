@@ -1,0 +1,258 @@
+{
+  "schema_version": "1.0",
+  "generated_utc": "2026-10-03T14:51:31Z",
+  "input": {
+    "archive": "C:\\Users\\adity\\OneDrive\\Desktop\\Narendra\\scan2plan\\data\\synthetic\\nominal.zip",
+    "scan_id": "syn_nominal",
+    "frames_in_archive": 360,
+    "frames_used": 341,
+    "depth_image_hw": [
+      192,
+      256
+    ],
+    "depth_scale_m_per_unit": 0.001,
+    "frame_sampling": {
+      "load_stride": 2,
+      "frame_stride": 1,
+      "point_stride": 4
+    },
+    "elapsed_s": 11.6
+  },
+  "coordinate_frame": {
+    "description": "Archive world frame: Z is the camera optical axis, Y is vertical. The room is solved in a gravity-aligned floor frame (alpha, beta) whose origin is the world origin, projected onto the floor plane.",
+    "up_world": [
+      -0.00026,
+      1.0,
+      -0.00158
+    ],
+    "basis_a_world": [
+      0.7863,
+      0.00118,
+      0.61784
+    ],
+    "basis_b_world": [
+      0.61785,
+      -0.00108,
+      -0.7863
+    ],
+    "floor_height_world_m": -0.0014
+  },
+  "room": {
+    "basis": {
+      "a": [
+        0.786299,
+        0.00118,
+        0.617845
+      ],
+      "b": [
+        0.617846,
+        -0.001081,
+        -0.786299
+      ],
+      "up": [
+        -0.00026,
+        0.999999,
+        -0.001579
+      ]
+    },
+    "vertices_world": [
+      [
+        0.0087,
+        -0.0014,
+        0.0034
+      ],
+      [
+        0.0081,
+        0.004,
+        3.4034
+      ],
+      [
+        4.599,
+        0.0052,
+        3.399
+      ],
+      [
+        4.5963,
+        -0.0001,
+        0.0142
+      ]
+    ],
+    "floor_area_m2": 15.5684,
+    "perimeter_m": 15.9632,
+    "floor_height_m": -0.0014,
+    "ceiling_height_m": 2.7194,
+    "walls": [
+      {
+        "normal_ab": [
+          0.78579,
+          0.61849
+        ],
+        "offset_m": 4.5963,
+        "support": 133,
+        "length_m": 3.4,
+        "position_uncertainty_m": 0.0018,
+        "n_fragments": 1,
+        "constrained_by_edges": [
+          2
+        ]
+      },
+      {
+        "normal_ab": [
+          0.78642,
+          0.61769
+        ],
+        "offset_m": 0.0087,
+        "support": 67,
+        "length_m": 4.591,
+        "position_uncertainty_m": 0.0025,
+        "n_fragments": 1,
+        "constrained_by_edges": [
+          0
+        ]
+      },
+      {
+        "normal_ab": [
+          0.61599,
+          -0.78775
+        ],
+        "offset_m": 0.0034,
+        "support": 65,
+        "length_m": 3.3847,
+        "position_uncertainty_m": 0.0024,
+        "n_fragments": 1,
+        "constrained_by_edges": [
+          3
+        ]
+      },
+      {
+        "normal_ab": [
+          0.61861,
+          -0.7857
+        ],
+        "offset_m": 3.4034,
+        "support": 66,
+        "length_m": 4.5875,
+        "position_uncertainty_m": 0.002,
+        "n_fragments": 2,
+        "constrained_by_edges": [
+          1
+        ]
+      }
+    ],
+    "notes": []
+  },
+  "planes": {
+    "floor": {
+      "plane_normal_world": [
+        -0.00105,
+        1.0,
+        0.00084
+      ],
+      "offset_m": -0.0014,
+      "height_above_floor_m": 0.0,
+      "residual_rms_m": 0.022,
+      "supporting_members": 0,
+      "member_height_spread_m": 0.0,
+      "height_uncertainty_m": 0.022
+    },
+    "ceiling": {
+      "plane_normal_world": [
+        0.00016,
+        0.99999,
+        -0.00385
+      ],
+      "offset_m": 2.718,
+      "height_above_floor_m": 0.0,
+      "residual_rms_m": 0.0192,
+      "supporting_members": 0,
+      "member_height_spread_m": 0.0,
+      "height_uncertainty_m": 0.0192
+    },
+    "walls": [
+      {
+        "normal_world": [
+          1.0,
+          -0.00128,
+          -0.00082
+        ],
+        "offset_m": 4.5962,
+        "supporting_members": 0,
+        "residual_rms_m": 0.0209
+      },
+      {
+        "normal_world": [
+          0.99999,
+          0.00463,
+          0.00019
+        ],
+        "offset_m": 0.0087,
+        "supporting_members": 0,
+        "residual_rms_m": 0.0208
+      },
+      {
+        "normal_world": [
+          -0.00235,
+          0.00414,
+          0.99999
+        ],
+        "offset_m": 0.0034,
+        "supporting_members": 0,
+        "residual_rms_m": 0.0196
+      },
+      {
+        "normal_world": [
+          0.00097,
+          0.0042,
+          0.99999
+        ],
+        "offset_m": 3.4073,
+        "supporting_members": 0,
+        "residual_rms_m": 0.0166
+      },
+      {
+        "normal_world": [
+          -0.00343,
+          -0.03069,
+          0.99952
+        ],
+        "offset_m": 3.3415,
+        "supporting_members": 0,
+        "residual_rms_m": 0.0079
+      }
+    ]
+  },
+  "uncertainty": {
+    "method": "Residual scatter over sqrt(supporting observations). Ceiling height is a difference of two plane heights and combines them in quadrature.",
+    "ceiling_height_m": 2.719405019509717,
+    "ceiling_height_1sigma_m": 0.0292,
+    "wall_position_1sigma_m": [
+      0.0018,
+      0.0025,
+      0.0024,
+      0.002
+    ],
+    "wall_position_1sigma_max_m": 0.0025,
+    "floor_area_1sigma_pct": 0.226
+  },
+  "quality": {
+    "n_walls": 4,
+    "n_vertices": 4,
+    "floor_area_m2": 15.5684,
+    "perimeter_m": 15.9632,
+    "edge_lengths_m": [
+      3.4,
+      4.591,
+      3.3847,
+      4.5875
+    ],
+    "ceiling_height_m": 2.7194,
+    "notes": []
+  },
+  "limitations": [
+    "Openings (doors, windows) are not yet detected; wall runs are reported as continuous segments, so any opening is absorbed into the wall length.",
+    "The vertical axis is derived from gravity and the handheld-above-floor convention, not from a sensor. It is sign-corrected per capture.",
+    "Scale comes from the device depth scale, not from a surveyed reference. Any error in the device scale is a uniform multiplicative error in every length reported here.",
+    "Poses are consumed as given. No loop closure or pose-graph optimisation is applied, so pose error appears directly in the wall uncertainties.",
+    "Multi-room layouts are not stitched; one capture yields one room."
+  ]
+}
