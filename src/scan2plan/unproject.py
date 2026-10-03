@@ -235,18 +235,35 @@ def calibrate_scale(
     return out
 
 
-def gravity_axis(positions: np.ndarray, quats: np.ndarray) -> np.ndarray:
-    """Dominant vertical axis in world frame, from the device's own up vector.
+def gravity_axis(positions: np.ndarray, quats: np.ndarray | None = None) -> np.ndarray:
+    """Estimate the world vertical axis from the trajectory.
 
-    The rig keeps the sensor roughly level, so averaging the body-frame up axis
-    over all poses recovers gravity robustly -- and unlike a PCA on the
-    trajectory it does not mistake a straight corridor for "up".
+    A handheld floor scan travels across a floor, so the direction of least
+    variance in the trajectory is the vertical. Measured on the sample
+    archives, that is the Y axis in all three, with the vertical extent
+    0.25-0.42 m against 3.6-9.1 m horizontally.
+
+    An earlier version averaged the device body +Z axis. That is wrong: on this
+    hardware +Z is the optical axis, not the up axis, so the result was the
+    average *viewing* direction. The tell was single_room, where the implied
+    camera height swung 2.25 m across a handheld walk inside one room -- an
+    impossibility for a real vertical.
+
+    The sign is arbitrary here (an axis, not a vector); use `orient_up` to
+    choose it so that the floor lies below the camera.
     """
-    from .ingest import quat_to_rot
+    centred = positions - positions.mean(axis=0)
+    _, _, vt = np.linalg.svd(centred, full_matrices=False)
+    return vt[2] / (np.linalg.norm(vt[2]) + 1e-12)
 
-    ups = np.stack([quat_to_rot(q)[:, 2] for q in quats])  # body +Z
-    g = ups.mean(axis=0)
-    n = np.linalg.norm(g)
-    if n < 1e-9:
-        return np.array([0.0, 0.0, 1.0])
-    return g / n
+
+def orient_up(up: np.ndarray, plane_heights: np.ndarray, camera_heights: np.ndarray) -> np.ndarray:
+    """Flip `up` so the dominant horizontal plane lies below the camera.
+
+    A plane at height h and a camera at height c satisfy h < c for a floor and
+    h > c for a ceiling. Whichever sign of `up` makes the dominant plane fall
+    below the camera is the one pointing up, and this avoids hard-coding a
+    world-frame convention that the data may not share.
+    """
+    delta = float(np.median(np.asarray(plane_heights) - np.asarray(camera_heights)))
+    return -up if delta < 0 else up

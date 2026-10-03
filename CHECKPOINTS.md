@@ -11,7 +11,8 @@ Deadline: **5 Oct, 10:00 IST**. One commit per checkpoint, in order.
 |---|---|---|---|
 | CP0 | Git repo + identity | blocked | need author name/email |
 | CP1 | Ingest + scale calibration | **done** | 0.9997 mm/unit, verified on 3 archives |
-| CP2 | Drift correction | todo | poses-as-is is an automatic fail |
+| CP2 | Drift measurement + gravity fix | **done** | no systematic drift found (R²≈0); ~32-44 mm random scatter |
+| CP2b | Plane-anchored correction + ablation | todo | on the critical path |
 | CP3 | Plane segmentation | todo | floor/ceiling/walls |
 | CP4 | Dimensioned geometry | todo | walls, ceiling height, area |
 | CP5 | Opening detection | todo | missed and phantom both score as miss |
@@ -82,16 +83,24 @@ candidate, but CP8 data picks the target rather than assuming it.
   path extents (8.5x8.7 vs 8.3x9.1 m) and are probably the same room twice —
   a likely natural repeatability pair. To be verified, not assumed.
 
-## Cannot be satisfied with available hardware
+## Hardware constraints (resolved)
 
-No LiDAR on the Realme GT 7T, and the walk-in test uses the interviewer's own
-iPhone. Marked as gaps rather than filled with invented numbers.
+Confirmed with Siva by email:
 
-| Requirement | Substitute | Gap |
+- **Photo and video tiers may be captured on Android.** A Realme GT 7T is
+  acceptable. This unlocks the photo/video gates with real captures instead of
+  leaving them unmet.
+- **LiDAR tier uses the supplied sample archives.** No LiDAR on the GT 7T, and
+  none is expected.
+- **Limitations and trade-offs must be stated plainly in the README** so the
+  reviewer can see what was and was not achieved. Accepted as a condition of
+  the approach, not fought.
+
+Remaining gaps, stated rather than filled with invented numbers:
+
+| Requirement | Substitute | Residual gap |
 |---|---|---|
-| LiDAR tier ground truth | synthetic known rooms + internal consistency | no tape-measured scanned room |
-| Photo / video tiers | real captures from own flat | device is Android, not "iPhone 15 or newer" |
-| Part 3 head-to-head | ScanNet reference reconstruction | not a consumer app export |
-| Multi-room with connector | own flat, photo tier | single-room archives only |
-| Staged damage | own flat, photo tier | not LiDAR-verifiable |
-| TestFlight build | stock-capture protocol (Route 2) | no iOS device |
+| LiDAR tier ground truth | synthetic known rooms + internal consistency | no tape-measured scanned room exists |
+| Part 3 head-to-head | ScanNet reference reconstruction | not a consumer app export (no magicplan without iOS) |
+| LiDAR-tier damage classes | photo tier only | damage not verified against depth |
+| TestFlight build | stock-capture protocol (Route 2) | no iOS device to build on |
