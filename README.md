@@ -140,8 +140,8 @@ detection remains open.
 | `scripts/measure_real_baseline.py` | Real-archive baseline and disjoint-halves repeatability |
 | `docs/final_report.md` | **Start here** — results, negative results, next steps |
 | `docs/compliance_matrix.md` | Requirement-by-requirement status with evidence |
-| `docs/capture_protocol.pdf` | Field capture protocol for collecting new data |
-| `docs/site_day.pdf` | Short on-site runbook actually followed: tape, room photos, damage. Its Magicplan step could not be executed — see Limitations. |
+| `docs/capture_protocol.pdf` | Field capture protocol for collecting new data (source: `docs/capture_protocol.html`) |
+| `docs/site_day.pdf` | Short on-site runbook actually followed: tape, room photos, damage. Its Magicplan step could not be executed — see Limitations. Source: `docs/site_day.html`, which carries an outcome box recording what was and was not achieved on the day. |
 | `CHECKPOINTS.md` | Working log: what was tried, what broke, what it cost |
 
 ## How it works
