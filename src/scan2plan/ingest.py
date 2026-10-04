@@ -59,6 +59,33 @@ class Capture:
     def depth_hw(self) -> tuple[int, int]:
         return self.depth.shape[1], self.depth.shape[2]
 
+    def subset(self, frames: "list[int] | range | np.ndarray") -> "Capture":
+        """A view of this capture over `frames`, keeping every array aligned.
+
+        Needed to measure repeatability: segmenting two disjoint halves of the
+        same capture and comparing the fits measures how stable the estimator is
+        without needing any ground truth. Slicing the arrays independently would
+        be a bug waiting to happen, so every per-frame array goes through here.
+        """
+        idx = np.asarray(frames, dtype=np.int64)
+        if idx.size == 0:
+            raise ValueError("subset() needs at least one frame")
+        if idx.min() < 0 or idx.max() >= self.n_frames:
+            raise IndexError(
+                f"frame indices out of range: got {idx.min()}..{idx.max()}, "
+                f"archive has {self.n_frames}"
+            )
+        return Capture(
+            scan_id=self.scan_id,
+            depth=self.depth[idx],
+            confidence=self.confidence[idx],
+            positions=self.positions[idx],
+            quats=self.quats[idx],
+            focal=self.focal[idx],
+            principal=self.principal[idx],
+            timestamps=self.timestamps[idx],
+        )
+
     def depth_intrinsics(self, frame: int) -> np.ndarray:
         """Intrinsics matched to the decimated depth resolution, frame `frame`."""
         h, w = self.depth_hw
