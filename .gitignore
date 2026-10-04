@@ -1,5 +1,6 @@
 __pycache__/
 *.pyc
+*.egg-info/
 .ipynb_checkpoints/
 
 # Raw captures are large and must not enter git history.
