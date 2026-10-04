@@ -301,11 +301,65 @@ flattering 1.02 m for `main_hall` where the truth-free median is 1.234 m. It now
 a median with no access to the tape, and `tests/test_openings.py` asserts the function's
 only parameter is the measurement list, so it cannot be reintroduced.
 
-**Damage was not detected.** A crack is a depth discontinuity, so it was measured as
-local depth roughness against the same wall's control frames. The two crack frames
-came out *smoother* than the control (ratio 0.47). With two frames in a
-three-bedroom capture, the method is below its resolution. Detection path
-demonstrated; detection not demonstrated.
+**Damage was not detected, and I can now say precisely why.** The first attempt
+measured local depth roughness on the two crack frames and got a ratio of 0.47 —
+the crack looked *smoother* than its controls. That was blamed on having only two
+frames. That explanation was wrong, and it was wrong in a way worth recording:
+the comparison was structural, not starved of data. Global roughness sums sensor
+noise over the whole frame, so a defect covering a few dozen pixels of a 256×192
+map is diluted by roughly three orders of magnitude before the comparison happens.
+More frames do not fix that.
+
+So I built the missing thing instead of tuning the broken thing: a synthetic
+generator that renders crack, spall and breach with *exact* ground truth
+(`synth.damage_rooms()`), and a benchmark that scores against it through the real
+archive format. With that in place the question stopped being rhetorical.
+
+| Case | True depth | Size in depth pixels | Detected |
+|---|---|---|---|
+| Hairline crack | 4 mm | 0.68 px | no |
+| Moderate crack | 12 mm | 1.28 px | no |
+| Spall | 30 mm | 25.6 px | no |
+| Breach | — | 12.8 px | no |
+
+**0 of 4 detected, with 19 false positives across four runs — including three rooms
+that have no damage at all.** A detector that fires on clean walls is worse than no
+detector, so nothing in the product path calls it. Two hard limits are now measured
+rather than assumed:
+
+- **Resolution floor.** The depth stream is natively 256×192 and
+  `DEPTH_DECIMATION` maps the *camera* intrinsics onto it, so one pixel subtends
+  `t/fx` = **11.7 mm at 2.5 m**. Anything narrower is sub-pixel: its depth is
+  diluted across a footprint that also contains wall, and no amount of averaging
+  recovers it, because every pixel it touches is mixed. This is a property of the
+  sensor, not a setting I chose. It accounts for the 4 mm and 12 mm cracks.
+- **Noise floor.** Segmentation reports wall rms of **18–24 mm on clean walls**.
+  Per-frame plane refitting absorbs the rigid part of pose noise but not genuine
+  surface relief. Any groove shallower than that is inside the spread of a clean
+  wall, which is why the first threshold fired on hundreds of cells and why the
+  30 mm spall — 25 pixels wide, comfortably above the noise — still would not
+  separate.
+
+That third case is the real failure, and it is worth being exact about what it
+exposed. Subtracting a local background cut several hundred false positives to a
+handful. Filtering each point by its nearest plane cut them to zero. But a 30 mm
+spall is large enough to be *segmented as a plane in its own right* — the damaged
+room yields five walls instead of four — so a nearest-plane test hands the spall's
+own points to the spall plane, where their residual is zero by construction. The
+detector ends up discarding the evidence it is looking for. A wall's 12 cm
+neighbourhood also contains the floor and ceiling it meets, 0–120 mm off the wall
+plane, which carry exactly the signature being searched for; every threshold I set
+was really a threshold on junction geometry.
+
+**What I kept and what I would need.** Three parts of this survive as verified:
+the ground-truth generator, `pixel_footprint_m` (the resolution floor above, now
+pinned by a test), and the severity banding. The detector itself is kept only as a
+recorded negative result, with the numbers above in its module docstring so nobody
+rediscovers the failure the hard way. Making this work is not a threshold-tuning
+job — it needs a different signal. LED²-Net (Chandak et al., §11) gets scale from
+360° panoramas and treats damage at panoptic scale; photometric stereo or a
+higher-resolution depth stream is the honest answer here, and both are capture-side
+changes rather than code-side ones.
 
 ## 6. Six convention bugs, and how each was found
 
@@ -396,7 +450,7 @@ of frame. The check was wrong, not the model.
 ## 10. Compliance
 
 See [`compliance_matrix.md`](compliance_matrix.md) — 35 requirements: **24 Met,
-1 Partial, 2 Prototype, 8 Not met or Not done**, each with a file that proves it.
+2 Partial, 1 Prototype, 8 Not met or Not done**, each with a file that proves it.
 Two of the 24 are qualified: the room-polygon requirement is Met on synthetic data
 and fails on real archives, and the reference benchmark is a substitute for a
 Magicplan comparison that was not performed. Strip those and it is 22 unqualified.

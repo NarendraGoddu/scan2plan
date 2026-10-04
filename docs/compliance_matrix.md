@@ -42,9 +42,9 @@ Last updated 2026-10-04. All figures reproducible with the commands in
 
 | # | Requirement | Status | Evidence | Notes |
 |---|---|---|---|---|
-| 4.1 | Damage detection from depth | **Prototype** | `runs/openings_and_damage.json` | Local depth roughness vs the same wall's control frames. |
-| 4.2 | Validation of damage detection | **Not met** | same | One crack, two frames. Crack frames came out *smoother* than control (ratio 0.47), so the method did not detect it. Negative result, stated as one. |
-| 4.3 | Damage classes / severity | **Not done** | — | No taxonomy attempted. |
+| 4.1 | Damage detection from depth | **Not met** | `src/scan2plan/damage.py`, `scripts/benchmark_damage.py` | Plane-residual detector, scored against exact synthetic truth: **0 of 4 damage cases detected, 19 false positives** across four runs including three undamaged rooms. Kept as a measured negative result; nothing in the product path calls it. |
+| 4.2 | Validation of damage detection | **Not met** | `scripts/benchmark_damage.py`, `out/damage_benchmark.json` | Validation is now against synthetic ground truth rather than two photographs, so the result is trustworthy: 4 mm crack, 12 mm crack, 30 mm spall and a breach all missed. Two hard limits measured: depth pixel footprint is **11.7 mm at 2.5 m** (so the 4 mm and 12 mm cracks are 0.68 and 1.28 px wide), and segmentation reports wall rms **18-24 mm** on clean walls, which swamps any groove shallower than that. |
+| 4.3 | Damage classes / severity | **Partial** | `scan2plan.damage.severity_for`, `synth.damage_rooms` | Taxonomy exists and is exercised: crack, spall and breach are rendered by the generator with exact length, width, depth and world centre, and severity is banded on measured depth. Unvalidated in practice, because the detector it would classify does not work. Band thresholds are stated as conventions, not measurements. |
 
 ## 5. Accuracy and verification
 
@@ -55,7 +55,7 @@ Last updated 2026-10-04. All figures reproducible with the commands in
 | 5.3 | Independent real-world reference | **Met** | `data/field_ground_truth.json` | Tape, 3 rooms, plus diagonals. Used for validation only, never to calibrate. |
 | 5.4 | Real-world accuracy | **Not met** | `runs/real_baseline.json`, `runs/real_baseline_rect.json` | The LiDAR tier does not reproduce real rooms and is not claimed to. Default path gives 9 / 6 / 8 walls with 0.166 m slivers; the opt-in rectangular prior gives 4 / 4 / 4 walls, but floor-height repeatability across split halves was 0.6 / 189.5 / 801.0 mm; requiring the floor to sit 1.00-2.10 m below the camera (the HorizonNet constraint that floor and ceiling are layout parameters, not free plane fits) brings it to 0.6 / 60.4 / 89.5 mm. Still above the 10 mm gate, now for want of observations rather than a wrong surface. Areas (21.6 / 95.6 / 105.7 m²) also exceed the trajectory footprints (17.3 / 73.8 / 75.7 m²) by more than reach alone explains. |
 | 5.5 | Photo-tier accuracy | **Not met** | `runs/wall_measurements.json`, `runs/wall_consensus.json`, `scripts/wall_perspective_consensus.py` | Median wall error 0.55 m; room area −74% / −50% / +4%. Plane fits are good (rms 5-49 mm); the extents are not. Root cause quantified: only **2 of 12** labelled walls have any photograph within 40° of fronto-parallel — the rest were shot at ≥ 68° incidence, where monocular depth has almost no signal across a wall's width. |
-| 5.6 | Tests | **Met** | `python -m pytest tests -q` and `python -m ruff check .` | 117 passing, lint clean. mypy cannot run on this machine (Application Control blocks its DLL), so annotations are unverified by a type checker. |
+| 5.6 | Tests | **Met** | `python -m pytest tests -q` and `python -m ruff check .` | 140 passing, lint clean. mypy cannot run on this machine (Application Control blocks its DLL), so annotations are unverified by a type checker. |
 
 ## 6. Comparison against a commercial tool
 
@@ -93,8 +93,8 @@ Counted from the tables above, by the status column:
 | Status | Count |
 |---|---|
 | Met | 24 |
-| Partial | 1 |
-| Prototype | 2 |
+| Partial | 2 |
+| Prototype | 1 |
 | Not met / Not done | 8 |
 | **Total requirements** | **35** |
 

@@ -48,6 +48,12 @@ FACES = ("x0", "x1", "z0", "z1")
 # Face -> world axis index. Openings only ever appear on the vertical faces.
 FACE_AXIS = {"x0": 0, "x1": 0, "z0": 2, "z1": 2}
 
+# Damage taxonomy. The distinction that matters to a detector is not the label but
+# the depth signature: a crack and a spall are both grooves that return a valid
+# range slightly behind the wall plane, while a breach returns nothing at all and
+# so is indistinguishable from a door reveal by depth alone.
+DAMAGE_KINDS = {"crack", "spall", "breach"}
+
 
 class Room:
     """An axis-aligned room in a Y-up world, with rectangular wall openings.
@@ -63,11 +69,13 @@ class Room:
         width: float,
         height: float,
         openings: list[dict] | None = None,
+        damage: list[dict] | None = None,
     ) -> None:
         self.length = float(length)
         self.width = float(width)
         self.height = float(height)
         self.openings = list(openings or [])
+        self.damage = list(damage or [])
 
         for op in self.openings:
             if op["face"] not in FACES:
@@ -76,6 +84,18 @@ class Room:
                 raise ValueError(f"opening u-range invalid: {op}")
             if not (0.0 <= op["v0"] < op["v1"] <= self.height):
                 raise ValueError(f"opening v-range outside 0..{self.height}: {op}")
+
+        for d in self.damage:
+            if d["face"] not in FACES:
+                raise ValueError(f"damage face must be one of {FACES}: {d}")
+            if d.get("kind", "crack") not in DAMAGE_KINDS:
+                raise ValueError(f"damage kind must be one of {sorted(DAMAGE_KINDS)}: {d}")
+            if not (0.0 <= d["u0"] < d["u1"]):
+                raise ValueError(f"damage u-range invalid: {d}")
+            if not (0.0 <= d["v0"] < d["v1"] <= self.height):
+                raise ValueError(f"damage v-range outside 0..{self.height}: {d}")
+            if float(d.get("depth_m", 0.0)) < 0.0:
+                raise ValueError(f"damage depth must be >= 0: {d}")
 
     @property
     def bounds(self) -> tuple[np.ndarray, np.ndarray]:
@@ -119,12 +139,43 @@ class Room:
                     "v1": op["v1"],
                 }
             )
+        dmg = []
+        for d in self.damage:
+            du, dv = d["u1"] - d["u0"], d["v1"] - d["v0"]
+            uc, vc = 0.5 * (d["u0"] + d["u1"]), 0.5 * (d["v0"] + d["v1"])
+            # Same face->world mapping as opening_centres().
+            if d["face"] == "x0":
+                centre = [0.0, vc, uc]
+            elif d["face"] == "x1":
+                centre = [self.length, vc, uc]
+            elif d["face"] == "z0":
+                centre = [uc, vc, 0.0]
+            else:
+                centre = [uc, vc, self.width]
+            dmg.append(
+                {
+                    "face": d["face"],
+                    "kind": d.get("kind", "crack"),
+                    # A crack is long and thin, a spall is not; report both extents
+                    # and let the benchmark score against the long axis.
+                    "length_m": round(max(du, dv), 6),
+                    "width_m": round(min(du, dv), 6),
+                    "depth_m": round(float(d.get("depth_m", 0.0)), 6),
+                    "area_m2": round(du * dv, 6),
+                    "centre_world": [round(float(c), 6) for c in centre],
+                    "u0": d["u0"],
+                    "u1": d["u1"],
+                    "v0": d["v0"],
+                    "v1": d["v1"],
+                }
+            )
         return {
             "room_length_m": self.length,
             "room_width_m": self.width,
             "room_height_m": self.height,
             "floor_area_m2": round(self.floor_area_m2, 6),
             "openings": ops,
+            "damage": dmg,
         }
 
 
@@ -165,6 +216,39 @@ def _opening_hits(room: Room, axis: np.ndarray, hit: np.ndarray) -> np.ndarray:
             & (hit[:, 1] <= op["v1"])
         )
     return blocked
+
+
+def _damage_offset(room: Room, axis: np.ndarray, hit: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Per-ray range increment caused by wall damage, and a no-return mask.
+
+    A crack or spall is modelled as a groove: the surface is *behind* the wall
+    plane, so the range grows by `depth_m`. That is the signature a detector can
+    use, because the wall's own plane is fitted away before anything is measured.
+
+    A breach is modelled as no return at all, which is physically right and
+    deliberately unhelpful: by depth alone it is indistinguishable from a door
+    reveal, and telling them apart needs the labelled photograph, not the sensor.
+    """
+    extra = np.zeros(axis.shape[0], dtype=np.float64)
+    breach = np.zeros(axis.shape[0], dtype=bool)
+    for d in room.damage:
+        ai = FACE_AXIS[d["face"]]
+        on_face = axis == ai
+        if not on_face.any():
+            continue
+        u_coord = hit[:, 2] if d["face"].startswith("x") else hit[:, 0]
+        inside = (
+            on_face
+            & (u_coord >= d["u0"])
+            & (u_coord <= d["u1"])
+            & (hit[:, 1] >= d["v0"])
+            & (hit[:, 1] <= d["v1"])
+        )
+        if d.get("kind", "crack") == "breach":
+            breach |= inside
+        else:
+            extra = np.where(inside, float(d.get("depth_m", 0.0)), extra)
+    return extra, breach
 
 
 def look_at_rotation(forward: np.ndarray, world_up: np.ndarray) -> np.ndarray:
@@ -380,10 +464,16 @@ def render_capture(
         dirs = rays @ R.T
         flat = dirs.reshape(-1, 3)
         t, axis, hit = _plane_hit(true_pos[f], flat, lo, hi)
+        dmg_extra, dmg_breach = _damage_offset(room, axis, hit)
+        # Damage is added to the geometric range before noise, so it competes with
+        # the sensor noise on equal terms rather than being added afterwards and
+        # emerging perfectly clean.
+        t = t + dmg_extra
         valid = (
             (t >= DEPTH_MIN_M)
             & (t <= DEPTH_MAX_M)
             & (~_opening_hits(room, axis, hit))
+            & (~dmg_breach)
             & np.isfinite(t)
         )
         # Range-dependent noise: real ToF error grows with distance.
@@ -532,6 +622,42 @@ def standard_rooms() -> dict[str, Room]:
         "noisy_walls": Room(
             4.20, 3.30, 2.80,
             [{"face": "x1", "u0": 1.30, "u1": 2.20, "v0": 0.0, "v1": 2.05, "kind": "door"}],
+        ),
+    }
+
+
+def damage_rooms() -> dict[str, Room]:
+    """One room carrying damage of graded severity, for the detection benchmark.
+
+    Deliberately separate from `standard_rooms()` so that adding damage cases
+    cannot change the geometry benchmark or the numbers already published from it.
+
+    The four cases are chosen to bracket the noise floor rather than to flatter the
+    detector. Per-frame depth noise at 2.5 m is about 9.5 mm, so `hairline` at 4 mm
+    is *below* what a single frame can resolve and is expected to be missed;
+    `moderate` at 12 mm is expected to need frame averaging to clear; `deep` at 30 mm
+    should be found immediately; and `breach` returns no range at all, so it is
+    expected to be indistinguishable from a door reveal. Reporting a miss on
+    `hairline` as a failure would be scoring the sensor, not the method.
+    """
+    return {
+        "damaged": Room(
+            4.60, 3.40, 2.72,
+            [{"face": "x1", "u0": 1.20, "u1": 2.10, "v0": 0.0, "v1": 2.05, "kind": "door"}],
+            damage=[
+                # 4 mm deep, 8 mm wide: under the per-frame noise floor.
+                {"face": "x1", "kind": "crack", "u0": 0.60, "u1": 0.608,
+                 "v0": 0.90, "v1": 1.70, "depth_m": 0.004},
+                # 12 mm deep, 15 mm wide: needs averaging across frames.
+                {"face": "z1", "kind": "crack", "u0": 1.00, "u1": 1.015,
+                 "v0": 1.10, "v1": 2.30, "depth_m": 0.012},
+                # 30 mm deep, 400x300 mm patch: large and shallow, easy to find.
+                {"face": "x0", "kind": "spall", "u0": 1.60, "u1": 2.00,
+                 "v0": 1.30, "v1": 1.60, "depth_m": 0.030},
+                # No return at all: by depth alone this is a door reveal.
+                {"face": "z0", "kind": "breach", "u0": 2.20, "u1": 2.35,
+                 "v0": 1.40, "v1": 1.60, "depth_m": 0.0},
+            ],
         ),
     }
 

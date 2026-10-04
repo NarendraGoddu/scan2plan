@@ -571,3 +571,62 @@ leaves the well-conditioned coordinate frame the points are already in. That is 
 rewrite of the refit rather than a two-line change, and it has no test that would catch
 a silent regression, so it is left undone and recorded here instead. The gate that
 matters for the assessment is split-half repeatability, not rms.
+
+## Damage detection: measured failure, and the two limits that cause it
+
+The last unimplemented assessed category. I expected to close it and did not. The
+useful outcome is that it is now closed as a *measured negative result* rather than an
+open question, and the two blocking limits are numbers rather than suspicions.
+
+**What I built first, because it did not exist.** `synth.damage_rooms()` renders crack,
+spall and breach into the synthetic capture with exact ground truth: length, width,
+depth, area and world centre per defect. It is deliberately a separate function from
+`standard_rooms()` so the published 5-room geometry benchmark cannot shift underneath
+the numbers already quoted in the report. `tests/test_damage.py` asserts that separation
+directly, so the leak cannot happen quietly later.
+
+**The benchmark scores through the real archive format** (`write_archive` then
+`load_zip`), not renderer output fed straight to the detector, so the thing under test
+is the pipeline rather than a function in isolation. Three undamaged control rooms are
+reported before the damaged one, because sensitivity on its own is not a result - a
+method that fires on clean walls scores 100% sensitivity and is useless.
+
+**Result: 0 of 4 detected, 19 false positives across four runs.** Missed: 4 mm crack,
+12 mm crack, 30 mm spall, breach. The detector is retained in `src/scan2plan/damage.py`
+as a record with these numbers in its module docstring, and nothing in the product path
+calls it.
+
+Two limits, both measured:
+
+- **11.7 mm per depth pixel at 2.5 m** (`pixel_footprint_m`). The depth stream is
+  natively 256x192; `DEPTH_DECIMATION` maps the *camera* intrinsics onto that
+  resolution, so the footprint is a sensor property rather than a resampling choice.
+  Sub-pixel defects are unrecoverable in principle: every pixel a crack touches also
+  contains wall, so averaging cannot separate them. This is why the 4 mm and 12 mm
+  cracks were never findable.
+- **18-24 mm wall rms on clean walls**, from segmentation. Shallow grooves sit inside
+  the spread of a clean surface, so no threshold separates them.
+
+**The finding I did not expect, and the reason the spall fails.** After subtracting a
+local background and filtering points by nearest plane, false positives reached zero -
+and the 30 mm spall still did not appear. Cause: a defect that large gets *segmented as
+its own plane* (5 walls instead of 4), so the nearest-plane test assigns the spall's own
+points to the spall plane, where their residual is zero by construction. The filter
+discards precisely the evidence it is looking for. Separately, a wall's 12 cm
+neighbourhood contains the floor and ceiling it meets at 0-120 mm offset, which carry
+the same signature as a groove - so every threshold was partly a threshold on junction
+geometry, and residual tuning was never going to be the answer.
+
+**Correction to CP5's account of the 0.47 ratio.** I had attributed the earlier crack
+result to having only two frames. That was wrong. The comparison summed global depth
+roughness over the whole frame, so a few dozen defect pixels were diluted by ~3 orders of
+magnitude; more frames cannot fix a dilution problem. Worth recording because the wrong
+reasoning was plausible and would have justified collecting more data.
+
+**What this needs, and it is not code.** Photometric stereo, or a higher-resolution depth
+stream - both capture-side changes. LED2-Net (Chandak et al.) handles this at panoptic
+scale from 360 panoramas; this data tier does not carry the signal. Recorded as Not met
+in compliance rows 4.1 and 4.2, Partial in 4.3 (taxonomy and generator exist and are
+exercised, but unvalidated in practice because the detector does not work).
+
+Summary counts therefore moved 24 Met / 2 Partial / 1 Prototype / 8 Not met-or-Not done.
