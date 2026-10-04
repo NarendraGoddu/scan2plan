@@ -31,7 +31,7 @@ Across five synthetic rooms with exact truth (four walls recovered in each):
 
 | Metric | Median | Max | Assessment gate |
 |---|---|---|---|
-| Room span | 3.8 mm | 12.5 mm | 20 mm |
+| Room span | 4.1 mm | 12.5 mm | 20 mm |
 | Ceiling height | 3.0 mm | 3.8 mm | 15 mm |
 | Floor area | 0.21 % | 0.46 % | — |
 
@@ -142,6 +142,10 @@ detection remains open.
 | `scripts/report_field_capture.py` | Tape-assisted plans for a real site |
 | `examples/field_site/` | Generated real-site plans for the three captured rooms |
 | `scripts/measure_real_baseline.py` | Real-archive baseline and disjoint-halves repeatability |
+| `scripts/diag_boundary_rule.py` | Why a wall was kept or discarded, with the camera-path distances |
+| `scripts/diag_wall_planes.py` | Per-plane extent, normal and camera-distance diagnostics |
+| `scripts/diag_trajectory_extent.py` | How much floor the camera path actually covered |
+| `WALK_IN.md` | Ten-minute demo script: what to run, what to say, what to concede |
 | `docs/final_report.md` | **Start here** — results, negative results, next steps |
 | `docs/compliance_matrix.md` | Requirement-by-requirement status with evidence |
 | `docs/capture_protocol.pdf` | Field capture protocol for collecting new data (source: `docs/capture_protocol.html`) |

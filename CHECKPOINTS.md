@@ -185,7 +185,7 @@ Measured against exact truth on all five rooms, four walls found in each:
 
 | Metric | Median | Max | Gate |
 |---|---|---|---|
-| Room span | 3.8 mm | 12.5 mm | 20 mm |
+| Room span | 4.1 mm | 12.5 mm | 20 mm |
 | Ceiling height | 3.0 mm | 3.8 mm | 15 mm |
 | Floor area | 0.21 % | 0.46 % | — |
 
@@ -222,3 +222,56 @@ The reported ceiling uncertainty (±29 mm) is much larger than the actual error
 (0.6 mm). That is the honest direction to be wrong in: the floor plane's
 residual is inflated by pose noise, and understating it would be the failure
 that matters against a 15 mm gate.
+
+## The doorway regression
+
+The most useful thing in this log, because it is the one that nearly shipped.
+
+`select_room_boundary` was written to stop furniture being read as walls. Its
+first rule was: *a room boundary has the camera path entirely on one side, so
+discard any wall whose line the path crosses.* That is false whenever the
+operator walks through a doorway, which is most rooms.
+
+It cost the 6.2 × 3.1 m synthetic room both of its side walls. The operator's path
+spans 4.53 m along the normal of the 3.11 m wall pair — the extra 1.4 m is the
+doorway — so both walls looked straddled. Two unparallel walls cannot bound a
+region, so the room reported **0.000 m² with a NaN span**, and the benchmark's
+worst-case area error became meaningless.
+
+What made this worth logging rather than quietly patching:
+
+- **Nothing in the real data looked wrong.** There are no real-data ground truth
+  values to compare against, so a 0 m² room reads the same as any other number.
+  Only the synthetic benchmark, where truth is exact, exposed it.
+- **The first repair was also wrong.** Comparing a wall's offset against the
+  coordinate origin made a wall at offset 0 look permanently innermost, so it was
+  discarded even when a genuine wall stood beyond it. Caught by unit tests written
+  before the change was trusted, not by the benchmark.
+- **The rule that shipped compares the two excursions**, not their presence. A
+  wall is interior only when the path passes far beyond it on *both* sides by a
+  comparable amount — `WALL_CROSS_CENTRAL_RATIO = 0.5`. Furniture in the middle of
+  a room qualifies. A doorway does not: it leaves the wall near one edge of the
+  path's extent. On the failing room the ratio was 0.19.
+
+`tests/test_room_boundary.py` pins all of it, including the doorway case that
+started this.
+
+One crash was introduced on the way: when every wall in an orientation group is
+straddled, the survivor list was empty and indexing it raised `IndexError`. It now
+keeps the outermost pair and records that the crossing test was inconclusive,
+because dropping the group would silently delete a room dimension.
+
+| | before | after |
+|---|---|---|
+| Synthetic rooms at 4/4 walls | 4 of 5 | **5 of 5** |
+| `wide` room area | 0.000 m² (NaN span) | 19.26 m² (+0.21 %) |
+| `single_room` reported area | 19.27 m² | 12.08 m² |
+| `floor_only` reported area | 85.11 m² | 46.08 m² |
+| `with_ceiling` reported area | 93.54 m² | 27.60 m² |
+| Split-half wall disagreement | 6071 / 5529 mm | 6071 / 5529 mm (unchanged) |
+
+The real-data areas moved in the right direction — they now sit below the camera
+trajectory footprint instead of far above it — but there is no ground truth for
+those archives, so that is a sanity bound and not a result. The split-half
+disagreement is unchanged, which is the honest summary: **the real-data geometry
+is still unsolved.**

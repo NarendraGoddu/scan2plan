@@ -24,8 +24,8 @@ Last updated 2026-10-04. All figures reproducible with the commands in
 |---|---|---|---|---|
 | 2.1 | Floor plane segmentation | **Met** | `src/scan2plan/segment.py`, `runs/real_baseline.json` | Floor rms 9.7 mm on `single_room`. Repeatability 0.6 mm across disjoint halves. |
 | 2.2 | Ceiling plane + height | **Met** | `runs/real_baseline.json` | 2.3835 m, 1σ 9 mm. The one quantity that behaves on real archives. |
-| 2.3 | Vertical wall segmentation | **Partial** | `scripts/diag_wall_planes.py` | `classify_planes` labelled all 84 planes in `with_ceiling` as walls. `select_room_boundary` now filters by whether a plane bounds the camera path. Narrowed, not closed: floor repeatability on `with_ceiling` is still 801 mm. |
-| 2.4 | Room polygon from walls | **Met** on synthetic, **fails** on real | `src/scan2plan/plan.py` | Synthetic: 4/4 walls, span ≤12.5 mm, area ≤0.46%. Real: 1.75 m² reported against a 17.3 m² trajectory. Root cause is 2.3. |
+| 2.3 | Vertical wall segmentation | **Partial** | `scripts/diag_wall_planes.py`, `scripts/diag_boundary_rule.py` | `classify_planes` labelled all 84 planes in `with_ceiling` as walls. `select_room_boundary` now keeps, per orientation group, the outermost pair among walls the camera path does not straddle *centrally*. Narrowed, not closed: real archives still yield 6–9 walls where a rectangle has 4, and disjoint halves disagree by up to 6.1 m. |
+| 2.4 | Room polygon from walls | **Met** on synthetic, **fails** on real | `src/scan2plan/plan.py`, `tests/test_room_boundary.py` | Synthetic: 4/4 walls in all five rooms, span ≤12.5 mm, area ≤0.46%. Real: no ground truth ships with those archives, so the reported area can only be bounded by the camera trajectory footprint, not scored. Root cause is 2.3. |
 | 2.5 | Wall length, floor area, perimeter | **Met** | `runs/synthetic_benchmark.json` | Propagated 1σ per wall and for area. |
 
 ## 3. Outputs
@@ -82,7 +82,7 @@ Last updated 2026-10-04. All figures reproducible with the commands in
 | 8.2 | Runnable without setup | **Met** | `data/demo_room.zip` | 9.11 MB, exact truth, runs from a clean clone with zero setup. |
 | 8.3 | CLI | **Met** | `scan2plan-plan` | |
 | 8.4 | Optional heavy deps kept out of core | **Met** | `[depth]` extra | ONNX Runtime (~15 MB) instead of a multi-GB torch install; weights fetched by script, gitignored. |
-| 8.5 | Failure analysis | **Met** | `docs/final_report.md` §6, `CHECKPOINTS.md`, git log | Six convention bugs documented, each with the measurement that revealed it. |
+| 8.5 | Failure analysis | **Met** | `docs/final_report.md` §5, §6, `CHECKPOINTS.md`, git log | Six convention bugs plus one wall-selection regression I introduced, each with the measurement that revealed it. |
 
 ---
 
@@ -106,10 +106,22 @@ performed. Strip those two and it is 22 unqualified.
 The two results that matter most, stated plainly:
 
 1. **The automatic pipeline is verified on synthetic rooms and fails on real ones.**
-   Span error on synthetic is 12.5 mm worst case. On real archives the same code
-   reports a room a tenth of its true area. The synthetic benchmark could not catch
-   this, because synthetic rooms are empty boxes and every non-horizontal plane in
-   an empty box is a wall.
+   Span error on synthetic is 12.5 mm worst case, 4/4 walls in all five rooms. On
+   real archives the same code reports 6–9 walls where a rectangle has 4, and
+   splitting an archive in half yields walls that disagree by up to 6.1 m. Those
+   archives ship with no ground truth, so this is stated as self-inconsistency
+   rather than as an accuracy figure.
 2. **The photo tier is relative, not metric, because no frame contains a scale
    reference.** This is a capture-protocol omission, not a modelling choice, and it
    is the highest-value thing to fix on the next site visit.
+
+One methodological note, because it is the strongest evidence in the project: the
+synthetic benchmark could not catch the *original* real-data bug — synthetic rooms
+are empty boxes, where every non-horizontal plane genuinely is a wall — but it did
+catch the *second* one. A wall-selection rule written to fix the first bug assumed
+a room boundary always has the camera path on one side of it, which is false when
+the operator walks through a doorway. On the 6.2 × 3.1 m room the path spans 4.53 m
+along a 3.11 m wall pair, so both side walls were discarded and the room collapsed
+to 0.000 m² with a NaN span. Nothing in the real-data numbers looked wrong, because
+there are no real-data truth values to compare against — only the benchmark with
+exact truth exposed it.

@@ -216,11 +216,18 @@ def merge_wall_fragments(walls: list[Wall]) -> list[Wall]:
     return kept
 
 
-# How far the camera path may cross a wall line before that wall is called
-# interior to the room. The operator's head wanders and the operator walks right
-# up to walls, so a line clipping the *edge* of the path is a real wall. A line
-# passing through the *middle* of it is furniture in the middle of the room.
+# How far the camera path must pass through a wall line, on *both* sides, before
+# that wall is called interior to the room. The operator's head wanders and the
+# operator walks right up to walls, so a line clipping the *edge* of the path is a
+# real wall.
 WALL_CROSS_SLACK_M = 0.5
+
+# ...and how centrally the wall must sit within the path for that to count. A
+# wardrobe in the middle of a room has the operator walking around both sides of
+# it. A doorway does not: the path leaves through the opening and the wall stays
+# near one *edge* of the path's extent, not in the middle of it. Comparing the two
+# excursions rather than just their presence is what separates the two cases.
+WALL_CROSS_CENTRAL_RATIO = 0.5
 
 # A wall in this orientation group must stand at least this far outside the
 # camera path to count as the room boundary in that direction.
@@ -257,25 +264,23 @@ def select_room_boundary(
     cam = np.asarray(cam_ab, dtype=np.float64).reshape(-1, 2)
     notes: list[str] = []
 
-    spanning: list[Wall] = []
-    for w in walls:
+    # A wall is "crossed" when the camera path passes through its line by more
+    # than the slack on both sides *and* sits centrally within that excursion,
+    # which is the signature of an object in the middle of the room.
+    def crossed(w: Wall) -> bool:
         d = cam @ w.normal - w.offset
-        if d.min() < -WALL_CROSS_SLACK_M and d.max() > WALL_CROSS_SLACK_M:
-            notes.append(
-                f"discarded wall at offset {w.offset:+.2f} m (support {w.support}): "
-                f"camera path crosses it, so it is inside the room, not a boundary"
-            )
-            continue
-        spanning.append(w)
+        below, above = -float(d.min()), float(d.max())
+        if below <= WALL_CROSS_SLACK_M or above <= WALL_CROSS_SLACK_M:
+            return False
+        return min(below, above) >= WALL_CROSS_CENTRAL_RATIO * max(below, above)
 
-    if len(spanning) < 3:
-        return spanning, notes
+    is_crossed = {id(w): crossed(w) for w in walls}
 
     # Group by orientation, modulo 180 degrees: opposite walls of a rectangular
     # room are parallel and must be considered together.
     cos_tol = math.cos(math.radians(PARALLEL_TOL_DEG))
     groups: list[list[Wall]] = []
-    for w in sorted(spanning, key=lambda x: -x.support):
+    for w in sorted(walls, key=lambda x: -x.support):
         for g in groups:
             if abs(float(g[0].normal @ w.normal)) >= cos_tol:
                 g.append(w)
@@ -283,25 +288,66 @@ def select_room_boundary(
         else:
             groups.append([w])
 
-    kept: list[Wall] = []
+    spanning: list[Wall] = []
     for g in groups:
-        if len(g) == 1:
-            kept.append(g[0])
-            continue
-        # Reference direction for this group, then order by signed position along
-        # it so "outermost on each side" is a well-defined notion.
+        # Reference direction, then order by signed position along it so
+        # "outermost on each side" is well defined.
         ref = g[0].normal / np.linalg.norm(g[0].normal)
-        ranked = sorted(g, key=lambda w: w.offset * float(np.sign(ref @ w.normal) or 1.0))
-        for w in (ranked[0], ranked[-1]):
-            if not any(w is k for k in kept):
-                kept.append(w)
-        for w in ranked[1:-1]:
+        sgn = float(np.sign(ref @ g[0].normal)) or 1.0
+
+        def rank(w: Wall) -> float:
+            return w.offset * (sgn if abs(float(ref @ w.normal)) > 0 else 1.0)
+
+        ordered = sorted(g, key=rank)
+
+        # Discard walls the camera path straddles centrally -- furniture standing
+        # in the middle of the room. The room boundary is then the outermost
+        # survivor on each side.
+        #
+        # A wall merely *clipped* by the path is kept, because the camera can
+        # legitimately cross a wall plane through a doorway. An earlier version of
+        # this rule discarded any straddled wall and it threw away both side
+        # walls of the 6.2 x 3.1 m synthetic room: the operator's path spans
+        # 4.53 m along that 3.11 m wall pair's normal and the extra 1.4 m is the
+        # doorway. Two unparallel walls cannot bound a region, so the room
+        # collapsed to 0.000 m2 with a NaN span.
+        survivors: list[Wall] = []
+        for w in ordered:
+            if is_crossed[id(w)]:
+                notes.append(
+                    f"discarded wall at offset {w.offset:+.2f} m "
+                    f"(support {w.support}): camera path passes through it on "
+                    f"both sides, so it stands in the middle of the room rather "
+                    f"than bounding it"
+                )
+                continue
+            survivors.append(w)
+
+        if not survivors:
+            # Every candidate in this orientation is straddled centrally, so the
+            # crossing test cannot say which of them bounds the room. Dropping the
+            # group would delete a room dimension, so keep the outermost pair and
+            # record that the evidence was inconclusive.
+            notes.append(
+                f"orientation group near offset {ordered[0].offset:+.2f} m: all "
+                f"{len(ordered)} candidates are straddled by the camera path, so "
+                f"the outermost pair was kept without crossing-test support"
+            )
+            survivors = [ordered[0], ordered[-1]] if len(ordered) > 1 else list(ordered)
+
+        if len(survivors) == 1:
+            spanning.append(survivors[0])
+            continue
+        for w in (survivors[0], survivors[-1]):
+            if not any(w is k for k in spanning):
+                spanning.append(w)
+        for w in survivors[1:-1]:
             notes.append(
                 f"discarded parallel wall at offset {w.offset:+.2f} m "
                 f"(support {w.support}): lies between the outermost walls of its "
                 f"orientation, so it is interior to the room"
             )
-    return kept, notes
+    return spanning, notes
 
 
 def intersect_halfplanes(walls: list[Wall], interior: np.ndarray) -> np.ndarray | None:

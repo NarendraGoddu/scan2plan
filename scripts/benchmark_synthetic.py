@@ -119,7 +119,10 @@ def evaluate(names=None, load_stride=2, point_stride=4):
         report["rooms"][name] = rec
 
         if len(edges) >= 4:
-            length_errs += [abs(e_L - t_L), abs(e_W - t_W)]
+            # summarise() reports under *_mm keys, so scale here. Ceiling heights
+            # below are pre-scaled for the same reason; leaving spans in metres
+            # made the gate read "max 0.01 mm" for a 12.5 mm error.
+            length_errs += [abs(e_L - t_L) * 1000.0, abs(e_W - t_W) * 1000.0]
         if ch is not None:
             height_errs.append(abs(ch - gt_h) * 1000.0)
         if plan.floor_area_m2 > 0:
