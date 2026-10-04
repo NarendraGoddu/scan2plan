@@ -172,6 +172,32 @@ residual — but extents are not, because no single frame contains both corners 
 wall and a receding wall's 3D vertical extent is inflated by depth variation. This
 is a capture-protocol omission, not a modelling choice.
 
+**What the capture labels do and do not settle.** The photographer labelled each
+wall and numbered the viewpoints of that wall — `m_wall_2.5` is the fifth view of
+wall 2, `2_room_wall_2 (4)` the fourth — across two filename conventions. That
+gives one fact for free: **each room folder contains walls 1, 2, 3 and 4 and
+nothing else**, so the four-sided room model is supported by the capture itself and
+does not rest on the tape alone. It is now recorded per room as
+`topology_corroboration` in every field document.
+
+It does not give dimensions, and measuring them from the labels fails for a
+measurable reason. A wall's length comes from a view that spans its width, and the
+incidence angle between the fitted wall normal and the optical axis — computable
+per view with no camera pose — says whether a view does:
+
+| Room | Walls | With a view under 40° | Best incidence |
+|---|---|---|---|
+| `master_bedroom` | 4 | 1 | **0.0°** |
+| `main_hall` | 4 | 0 | 8.9° (rejected: vertical extent inconsistent) |
+| `second_bedroom` | 4 | 0 | 68.5° |
+
+**Only 2 of 12 walls have any view usable for measurement**, and both land near 45 %
+of the tape value. The rest were only ever photographed at ≥ 68° incidence, nearly
+edge-on, where monocular depth has almost no signal across a wall's width. Knowing
+that four photos share a wall lets us pick the best of four bad views; it cannot
+manufacture a good one. See `scripts/wall_perspective_consensus.py` and
+`scripts/diag_wall_perspectives.py`.
+
 **Damage was not detected.** A crack is a depth discontinuity, so it was measured as
 local depth roughness against the same wall's control frames. The two crack frames
 came out *smoother* than the control (ratio 0.47). With two frames in a

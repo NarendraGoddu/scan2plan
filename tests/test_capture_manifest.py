@@ -14,6 +14,7 @@ from scan2plan.capture_manifest import (
     group_by_surface,
     group_by_wall,
     parse_filename,
+    scan_capture,
 )
 
 
@@ -110,3 +111,59 @@ def test_grouping_helpers():
     unlabelled = items[-1]
     assert all(unlabelled not in v for v in walls.values())
     assert all(unlabelled not in v for v in surfaces.values())
+
+
+# --- scan_capture layouts -------------------------------------------------
+#
+# Regression: scan_capture originally read only files inside subdirectories, so a
+# capture delivered as a flat folder parsed as zero labelled photos. That is
+# indistinguishable from "there are no labels", and it silently disables every
+# stage that depends on them.
+
+
+def _touch(path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"not really a jpeg")
+
+
+def test_scan_capture_reads_photos_in_the_capture_root(tmp_path):
+    _touch(tmp_path / "m_wall_1.1.jpg")
+    _touch(tmp_path / "m_wall_2.5.jpg")
+    items = scan_capture(str(tmp_path))
+    assert len(items) == 2
+    assert sum(1 for i in items if i.labelled) == 2
+    assert {i.wall_index for i in items} == {1, 2}
+
+
+def test_scan_capture_still_reads_subfolders(tmp_path):
+    _touch(tmp_path / "master_bed_room" / "m_wall_1.1.jpg")
+    items = scan_capture(str(tmp_path))
+    assert len(items) == 1
+    assert items[0].room_id == "master_bedroom"
+    assert items[0].wall_index == 1
+
+
+def test_scan_capture_handles_both_layouts_at_once(tmp_path):
+    _touch(tmp_path / "main_hall" / "hall_side_1 (1).jpg")
+    _touch(tmp_path / "hall_side_2 (1).jpg")
+    items = scan_capture(str(tmp_path))
+    assert len(items) == 2
+    assert {i.wall_index for i in items} == {1, 2}
+
+
+def test_scan_capture_ignores_unrelated_extensions(tmp_path):
+    _touch(tmp_path / "notes.txt")
+    _touch(tmp_path / "m_wall_1.1.jpg")
+    items = scan_capture(str(tmp_path))
+    assert [i.filename for i in items] == ["m_wall_1.1.jpg"]
+
+
+def test_scan_capture_on_missing_directory_is_empty_not_an_error(tmp_path):
+    assert scan_capture(str(tmp_path / "nope")) == []
+
+
+def test_scan_capture_is_not_recursive_by_default(tmp_path):
+    _touch(tmp_path / "master_bed_room" / "nested" / "m_wall_9.9.jpg")
+    assert not any(i.filename.startswith("m_wall_9") for i in scan_capture(str(tmp_path)))
+    deep = scan_capture(str(tmp_path), recursive=True)
+    assert any(i.filename.startswith("m_wall_9") for i in deep)

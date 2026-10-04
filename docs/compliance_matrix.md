@@ -36,7 +36,7 @@ Last updated 2026-10-04. All figures reproducible with the commands in
 | 3.2 | Dimensioned floor plan, visual | **Met** | `examples/syn_nominal.svg`, `examples/field_site/*.svg` | ASCII-only glyphs, 1 m scale bar, no north arrow (the frame has no compass direction). |
 | 3.3 | Per-wall uncertainty | **Met** | `runs/synthetic_benchmark.json` | `rms / sqrt(support)`. |
 | 3.4 | Openings: doors, windows | **Prototype** | `scripts/analyse_openings_and_damage.py` | Detector returns the largest near region spanning the frame, which is the whole frame. Widths land 2.4× the tape figure. Reported unreliable, not shipped as working. |
-| 3.5 | Room dimensions, real site | **Met** via tape | `examples/field_site/`, `scripts/report_field_capture.py` | Geometry is **measured**, not reconstructed. Every document carries `geometry_is_measured_not_reconstructed: true`. |
+| 3.5 | Room dimensions, real site | **Met** via tape | `examples/field_site/`, `scripts/report_field_capture.py` | Geometry is **measured**, not reconstructed. Every document carries `geometry_is_measured_not_reconstructed: true`. The four-sided room model is additionally corroborated by the capture itself — each room folder holds walls 1–4 and nothing else — recorded per room as `topology_corroboration`, so the shape does not rest on the tape alone. The labels say nothing about dimensions. |
 
 ## 4. Damage
 
@@ -54,7 +54,7 @@ Last updated 2026-10-04. All figures reproducible with the commands in
 | 5.2 | Accuracy gates | **Met** | `scripts/benchmark_synthetic.py` | Span 15 mm, ceiling 15 mm, area 1% gates. Achieved 12.5 / 3.8 mm / 0.46%. |
 | 5.3 | Independent real-world reference | **Met** | `data/field_ground_truth.json` | Tape, 3 rooms, plus diagonals. Used for validation only, never to calibrate. |
 | 5.4 | Real-world accuracy | **Not met** | `runs/real_baseline.json` | The LiDAR tier does not reproduce real rooms. Reported, not hidden. |
-| 5.5 | Photo-tier accuracy | **Not met** | `runs/wall_measurements.json` | Median wall error 0.55 m; room area −74% / −50% / +4%. Plane fits are good (rms 5–49 mm); the extents are not. |
+| 5.5 | Photo-tier accuracy | **Not met** | `runs/wall_measurements.json`, `runs/wall_consensus.json`, `scripts/wall_perspective_consensus.py` | Median wall error 0.55 m; room area −74% / −50% / +4%. Plane fits are good (rms 5-49 mm); the extents are not. Root cause quantified: only **2 of 12** labelled walls have any photograph within 40° of fronto-parallel — the rest were shot at ≥ 68° incidence, where monocular depth has almost no signal across a wall's width. |
 | 5.6 | Tests | **Met** | `python -m pytest tests -q` | 51 passing. |
 
 ## 6. Comparison against a commercial tool

@@ -330,3 +330,51 @@ are too many walls.** The cause is still that real surfaces are not clean planes
 clutter, partial views and fragmented fits — and the fix is still to solve for the
 minimal enclosing set of planes around the trajectory rather than filter a
 consensus set.
+
+## The wall/perspective labels
+
+The photographer labelled each wall and numbered the viewpoints of that wall, in
+two conventions:
+
+    m_wall_1.1 .. m_wall_1.4        dot form,   master bedroom
+    m_wall_2.1 .. m_wall_2.5
+    2_room_wall_1 (1) .. (3)        paren form, second bedroom  (a "copy" in
+    2_room_wall_2 (1) .. (4)                   Windows terms, but semantically
+    hall_side_1 (1) .. (8)                      a viewpoint index)
+
+So `m_wall_2.5` is the fifth viewpoint of wall 2, and `2_room_wall_2 (4)` the
+fourth. `capture_manifest.py` already parsed both into `wall_index` and
+`frame_index`; the dot form needed `_DOT_INDEX` anchored with a literal `.` so that
+`2_room_wall_1` is not read as frame 1 of an unnumbered wall.
+
+**What that buys: topology, for free.** Each room folder contains walls 1, 2, 3, 4
+and nothing else. That is a fact about the capture, not the tape, so the
+four-sided room model no longer rests on the tape alone. Every field document now
+carries `topology_corroboration` recording it.
+
+**What it does not buy: dimensions.** Knowing four photos share a wall means we can
+pick the best of four views. It cannot manufacture a good view. Measuring per view:
+
+| Room | Labelled walls | Views usable (< 40° incidence) | Best incidence |
+|---|---|---|---|
+| `master_bedroom` | 4 | 1 (wall 4, at 0.0°) | 0.0° |
+| `main_hall` | 4 | 0 | 8.9°, rejected: vertical extent inconsistent |
+| `second_bedroom` | 4 | 0 | 68.5° |
+
+Only **2 of 12 walls** are measurable at all, and both come out near 45 % of the
+tape value. The other ten were only ever photographed at ≥ 68° incidence — nearly
+edge-on, where monocular depth has almost no signal across the wall's width. That
+is the quantified reason the photo tier is not metric, which is a better answer
+than the earlier "median 0.55 m error" with no mechanism attached.
+
+Incidence angle is the angle between the fitted wall normal and the optical axis.
+It is computable per view with no camera pose, which is what makes it usable here.
+
+### A real bug this uncovered
+
+`scan_capture()` read only files *inside* subdirectories of the capture root. The
+2026-10-04 capture is laid out as `capture/<room>/…`, so it worked — but a capture
+delivered as a flat folder parsed as **zero labelled photos**, which is
+indistinguishable from "this capture has no labels" and silently disables every
+stage that depends on them. It now reads the root as well, with `recursive=True`
+for deeper trees. Six tests cover both layouts.

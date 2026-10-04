@@ -146,19 +146,45 @@ def parse_filename(folder: str, filename: str) -> CaptureItem:
     return item
 
 
-def scan_capture(capture_dir: str) -> list[CaptureItem]:
-    """Parse every photo and video in a capture directory."""
+def scan_capture(capture_dir: str, recursive: bool = False) -> list[CaptureItem]:
+    """Parse every photo and video in a capture directory.
+
+    Covers both layouts seen in practice: photos sitting directly in the capture
+    root, and photos grouped into per-room subfolders. The original version read
+    only subfolders, so a capture delivered as a flat folder parsed as zero
+    labelled photos -- which looks identical to "no labels exist", and quietly
+    disables every downstream stage that depends on them.
+
+    Not recursive by default: a capture directory often sits beside unrelated trees
+    (a git repo, node_modules) whose filenames would be parsed for nothing. Pass
+    recursive=True to descend.
+    """
     photo_ext = {".jpg", ".jpeg", ".png"}
     video_ext = {".mp4", ".mov", ".m4v", ".avi"}
     items: list[CaptureItem] = []
-    for folder in sorted(os.listdir(capture_dir)):
+
+    def _add(folder: str, names: list[str]) -> None:
+        for name in sorted(names):
+            if os.path.splitext(name)[1].lower() in photo_ext | video_ext:
+                items.append(parse_filename(folder, name))
+
+    root_name = os.path.basename(os.path.abspath(capture_dir))
+    try:
+        entries = sorted(os.listdir(capture_dir))
+    except OSError:
+        return items
+    _add(root_name, [n for n in entries
+                     if os.path.isfile(os.path.join(capture_dir, n))])
+
+    for folder in entries:
         fdir = os.path.join(capture_dir, folder)
         if not os.path.isdir(fdir):
             continue
-        for name in sorted(os.listdir(fdir)):
-            ext = os.path.splitext(name)[1].lower()
-            if ext in photo_ext or ext in video_ext:
-                items.append(parse_filename(folder, name))
+        if recursive:
+            for sub, _dirs, files in os.walk(fdir):
+                _add(os.path.relpath(sub, capture_dir), files)
+        else:
+            _add(folder, os.listdir(fdir))
     return items
 
 

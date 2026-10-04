@@ -115,6 +115,17 @@ def build_document(
         "geometry_source": "steel tape measurement (5 m tape, corner to corner at "
         "floor level between masking-tape corner marks)",
         "geometry_is_measured_not_reconstructed": True,
+        "topology_corroboration": {
+            "source": "capture filenames, not the tape",
+            "labelled_wall_indices": sorted(int(k) for k in photos_by_wall),
+            "labelled_wall_count": len(photos_by_wall),
+            "independent_support_for_four_walls": sorted(photos_by_wall) == [1, 2, 3, 4],
+            "note": "The photographer labelled each wall and numbered the viewpoints "
+                    "of that wall (m_wall_2.5 is the fifth view of wall 2). Each room "
+                    "folder contains walls 1-4 and nothing else, so the four-sided "
+                    "room model is supported by the capture itself and does not rest "
+                    "on the tape alone. The labels say nothing about dimensions.",
+        },
         "input": {
             "scan_id": f"field-{room_truth['id']}",
             "room_id": room_truth["id"],

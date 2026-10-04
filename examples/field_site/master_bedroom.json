@@ -1,8 +1,20 @@
 {
   "schema": "scan2plan/field-tape/v1",
-  "generated_utc": "2026-10-04T11:07:31Z",
+  "generated_utc": "2026-10-04T13:21:22Z",
   "geometry_source": "steel tape measurement (5 m tape, corner to corner at floor level between masking-tape corner marks)",
   "geometry_is_measured_not_reconstructed": true,
+  "topology_corroboration": {
+    "source": "capture filenames, not the tape",
+    "labelled_wall_indices": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "labelled_wall_count": 4,
+    "independent_support_for_four_walls": true,
+    "note": "The photographer labelled each wall and numbered the viewpoints of that wall (m_wall_2.5 is the fifth view of wall 2). Each room folder contains walls 1-4 and nothing else, so the four-sided room model is supported by the capture itself and does not rest on the tape alone. The labels say nothing about dimensions."
+  },
   "input": {
     "scan_id": "field-master_bedroom",
     "room_id": "master_bedroom",

@@ -145,6 +145,8 @@ detection remains open.
 | `scripts/diag_boundary_rule.py` | Why a wall was kept or discarded, with the camera-path distances |
 | `scripts/diag_duplicate_frames.py` | Duplicate/redundancy audit of the sample archives |
 | `scripts/compare_baselines.py` | Side-by-side comparison of two baseline JSONs |
+| `scripts/diag_wall_perspectives.py` | Per-view incidence angle and extent for every labelled wall |
+| `scripts/wall_perspective_consensus.py` | Which labelled walls are photo-measurable, and why not |
 | `scripts/diag_wall_planes.py` | Per-plane extent, normal and camera-distance diagnostics |
 | `scripts/diag_trajectory_extent.py` | How much floor the camera path actually covered |
 | `WALK_IN.md` | Ten-minute demo script: what to run, what to say, what to concede |
