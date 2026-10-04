@@ -107,7 +107,7 @@ accuracy because it is a measuring instrument rather than an inference.
 | SVG rendering, CLI, packaging | Works, from a clean clone |
 | Monocular depth | Works, 348 maps, real planar structure verified |
 | Per-wall measurement from photos | **Not metric** — 550 mm median error |
-| Openings (doors/windows) | **Prototype** — detector returns the whole frame |
+| Openings (doors/windows) | **Prototype** — heights within 20 mm on 2 of 3 doors; widths biased +96…+119 mm |
 | Damage detection | **Did not detect** the one crack recorded |
 | Multi-room stitching | Not attempted |
 | iOS app | Not attempted, no device |
@@ -197,6 +197,41 @@ edge-on, where monocular depth has almost no signal across a wall's width. Knowi
 that four photos share a wall lets us pick the best of four bad views; it cannot
 manufacture a good one. See `scripts/wall_perspective_consensus.py` and
 `scripts/diag_wall_perspectives.py`.
+
+**The openings detector was searching the wrong half of the depth range.** It
+selected the largest region *nearer* than the 55th percentile. But a doorway
+photographed from inside a room is a hole you look **through** into the next space,
+so it is *farther* than the wall around it. The measured band means in the five door
+photographs bear this out — floor at the bottom of the frame 2.3–3.6 m, the middle of
+the frame 6.3–6.7 m. Masking the near region therefore selected the wall, which wraps
+around the opening and connects across the frame, so the largest component came back
+as the whole image: **1.93 m wide for a door taped at 0.80 m.**
+
+Two hypotheses were tested and one was wrong. "The mask is selecting the floor" was
+falsified immediately — the selected bbox touched the top and bottom edges, and the
+near fraction was *higher* in the upper half for four of the five photos, the opposite
+of that prediction. Inverting the polarity is what worked. A third, parameter-free
+variant (the opening is the far region that does not touch the image border) was also
+tested and **refuted**: the opening reaches the frame edge in all five photographs.
+
+| Room | Estimate | Tape | Width err | Height err |
+|---|---|---|---|---|
+| `master_bedroom` | 0.896 × 1.983 m | 0.80 × 2.00 m | +96 mm | **−17 mm** |
+| `second_bedroom` | 0.919 × 2.008 m | 0.80 × 2.00 m | +119 mm | **+8 mm** |
+| `main_hall` | 1.234 × 1.873 m | 1.03 × 2.09 m | +204 mm | −217 mm |
+
+So **heights now meet the 20 mm gate on two of three doors and widths do not meet it
+on any.** The residual width bias is systematic and has a cause: the mask includes the
+door reveal, the few centimetres of jamb depth that genuinely belong to the opening.
+`main_hall` is flagged rather than hidden — its two copies of the same door disagree by
+430 mm, so no consensus number is meaningful and the row says so.
+
+**One methodological fix worth naming.** The per-room line used to be
+`min(copies, key=abs(estimate − tape))` — it picked whichever copy landed nearest the
+taped height. That is selecting on validation data, and it had quietly produced a
+flattering 1.02 m for `main_hall` where the truth-free median is 1.234 m. It now takes
+a median with no access to the tape, and `tests/test_openings.py` asserts the function's
+only parameter is the measurement list, so it cannot be reintroduced.
 
 **Damage was not detected.** A crack is a depth discontinuity, so it was measured as
 local depth roughness against the same wall's control frames. The two crack frames

@@ -50,13 +50,24 @@ NOMINAL_MEDIAN_M = 3.0
 CLIP = (2.0, 95.0)
 MAX_FACTOR = 4.0
 
-# A doorway is a tall narrow region of *near* depth framed by wall. This is the
-# fraction of the image height the opening must span to be considered a door.
-DOOR_MIN_HEIGHT_FRAC = 0.35
+# Opening measurement lives in scan2plan.openings so it can be tested against
+# synthetic frames with a known answer; this script is only the driver over the
+# 2026-10-04 capture.
+from scan2plan.openings import (  # noqa: E402,F401
+    COPY_DISAGREEMENT_M,
+    DOOR_MIN_HEIGHT_FRAC,
+    OPENING_DEPTH_MARGIN_M,
+    WALL_BORDER_FRAC,
+    consensus,
+    measure_opening,
+    wall_depth_m,
+)
+from scan2plan.openings import to_metres as opening_metres  # noqa: E402
 
 # Depth roughness thresholds, in metres of local deviation from a planar fit.
 ROUGHNESS_SIGMA_FACTOR = 3.0
 ROUGHNESS_FLOOR_M = 0.02
+
 
 
 def load_depth(path: str) -> np.ndarray:
@@ -98,36 +109,6 @@ def local_roughness(depth_m: np.ndarray, ksize: int = 9) -> np.ndarray:
     return np.sqrt(var)
 
 
-def measure_opening(depth_m: np.ndarray) -> dict | None:
-    """Find the doorway in a door photograph and size it relative to the frame.
-
-    The opening is the connected near region that spans most of the image height;
-    its height in the image, divided by the room's full frame height, gives the
-    opening's share of the wall height, which converts to metres once the wall
-    height is known.
-    """
-    h, w = depth_m.shape[:2]
-    near = depth_m <= np.percentile(depth_m, 55)
-    near = cv2.morphologyEx(
-        near.astype(np.uint8), cv2.MORPH_OPEN, np.ones((5, 5), np.uint8)
-    )
-    n, labels, stats, _c = cv2.connectedComponentsWithStats(near, connectivity=8)
-    best, best_area = None, 0
-    for i in range(1, n):
-        x, y, bw, bh, area = stats[i]
-        if area > best_area and bh > DOOR_MIN_HEIGHT_FRAC * h:
-            best, best_area = (x, y, bw, bh, area), area
-    if best is None:
-        return None
-    x, y, bw, bh, area = best
-    return {
-        "bbox_px": [int(x), int(y), int(bw), int(bh)],
-        "height_frac_of_frame": round(float(bh) / h, 4),
-        "aspect_w_over_h": round(float(bw) / max(float(bh), 1), 4),
-        "area_frac": round(float(area) / (h * w), 4),
-    }
-
-
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--capture", default=os.path.join(ROOT, os.pardir, "capture"))
@@ -146,6 +127,7 @@ def main() -> None:
     door_items = [i for i in items if i.surface == "door" and i.room_id in truth_by_id]
     print(f"=== openings: {len(door_items)} door photographs ===")
     openings = []
+    summary: dict[str, dict] = {}
     for it in sorted(door_items, key=lambda x: x.path):
         dp = depth_path(capture_dir, args.depth_dir, it)
         if not os.path.isfile(dp):
@@ -158,11 +140,11 @@ def main() -> None:
         h_tape = truth_by_id[it.room_id]["height_m"]
         m["room_id"] = it.room_id
         m["source"] = it.filename
-        m["height_est_m"] = round(m["height_frac_of_frame"] * h_tape, 3)
-        m["width_est_m"] = round(m["aspect_w_over_h"] * m["height_est_m"], 3)
+        m["width_est_m"], m["height_est_m"] = opening_metres(m, h_tape)
         openings.append(m)
-        print(f"  {it.filename:<28} {m['height_est_m']:5.2f} x {m['width_est_m']:5.2f} m"
-              f"   (room height {h_tape} m)")
+        print(f"  {it.filename:<28} width {m['width_est_m']:5.2f} m x"
+              f" height {m['height_est_m']:5.2f} m   (wall {m['wall_depth_m']:.2f} m,"
+              f" room height {h_tape} m)")
 
     for it_room, t in truth_by_id.items():
         mine = [o for o in openings if o["room_id"] == it_room]
@@ -172,15 +154,26 @@ def main() -> None:
         if not doors:
             continue
         d = doors[0]
-        best = min(mine, key=lambda o: abs(o["height_est_m"] - d["height_m"]))
+        # Consensus across the photographs of this door, WITHOUT consulting the
+        # tape. An earlier version used `min(..., key=abs(estimate - tape))`,
+        # which meant the reported number was partly chosen by how close it
+        # happened to land to truth -- selecting on validation data.
+        s = consensus(mine)
+        summary[it_room] = s
+        flag = "" if s["copies_agree"] else (
+            f"   COPIES DISAGREE by "
+            f"{max(s['width_spread_m'], s['height_spread_m']):.2f} m"
+        )
         print(f"  {it_room:<16} tape door {d['width_m']} x {d['height_m']} m"
-              f"   best estimate {best['width_est_m']} x {best['height_est_m']} m")
+              f"   median of {s['n_photos']}:"
+              f" {s['width_est_m']:.3f} x {s['height_est_m']:.3f} m"
+              f"   (spread {s['width_spread_m']:.2f}/{s['height_spread_m']:.2f} m){flag}")
 
     # ---------------- damage ----------------
     print("\n=== damage: depth roughness on the cracked wall ===")
     dmg = [i for i in items if i.is_damage]
     dmg_rooms = {i.room_id for i in dmg}
-    report = {"openings": openings, "damage": []}
+    report = {"openings": openings, "openings_by_room": summary, "damage": []}
     for room in sorted(dmg_rooms):
         crack = [i for i in dmg if i.room_id == room]
         # Same wall, ordinary photographs: the control group.

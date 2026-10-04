@@ -133,6 +133,7 @@ detection remains open.
 | `src/scan2plan/monodepth.py` | Depth Anything V2 via ONNX Runtime, relative-depth handling |
 | `src/scan2plan/depth_geometry.py` | Plane fitting on lifted depth, vertical recovery from the floor |
 | `src/scan2plan/capture_manifest.py` | Room / surface / wall labels recovered from filenames |
+| `src/scan2plan/openings.py` | Door/window sizing from one photo; a doorway is *farther* than its wall |
 | `scripts/plan_room.py` | The CLI |
 | `scripts/benchmark_synthetic.py` | Scores the pipeline against known rooms |
 | `scripts/verify_synth.py` | Generator self-checks, including a geometry round-trip |
@@ -147,6 +148,7 @@ detection remains open.
 | `scripts/compare_baselines.py` | Side-by-side comparison of two baseline JSONs |
 | `scripts/diag_wall_perspectives.py` | Per-view incidence angle and extent for every labelled wall |
 | `scripts/wall_perspective_consensus.py` | Which labelled walls are photo-measurable, and why not |
+| `scripts/diag_openings.py` | Why the opening detector returned the whole frame: mask polarity |
 | `scripts/diag_wall_planes.py` | Per-plane extent, normal and camera-distance diagnostics |
 | `scripts/diag_trajectory_extent.py` | How much floor the camera path actually covered |
 | `WALK_IN.md` | Ten-minute demo script: what to run, what to say, what to concede |

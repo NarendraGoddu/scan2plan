@@ -378,3 +378,61 @@ delivered as a flat folder parsed as **zero labelled photos**, which is
 indistinguishable from "this capture has no labels" and silently disables every
 stage that depends on them. It now reads the root as well, with `recursive=True`
 for deeper trees. Six tests cover both layouts.
+
+## Openings: the mask was on the wrong half of the depth range
+
+The detector selected the largest region **nearer** than the 55th percentile. That
+is backwards, and the band means say so directly. In the five door photographs the
+floor at the bottom of the frame sits at 2.3-3.6 m while the middle of the frame sits
+at 6.3-6.7 m: a doorway is a hole you look *through* into the next space, so it is
+farther than the wall around it. Masking the near region selects the wall, which
+wraps around the opening and connects across the frame, so the largest component came
+back as the entire image — **1.93 m for a door taped at 0.80 m.**
+
+Two hypotheses were tested, and the first was wrong:
+
+| Hypothesis | Prediction | Result |
+|---|---|---|
+| H1: the mask is picking up the floor | bbox touches the **bottom**, near mass in the **lower** half | **Refuted** — 3 of 5 bboxes touch top *and* bottom; near fraction is *higher* in the upper half for 4 of 5 |
+| H2: the polarity is inverted | far-region mask gives a tall narrow mid-frame component | **Confirmed** — 0.92 m against 0.80 m taped |
+| H3: the far region is fully enclosed by wall, so no threshold is needed | a parameter-free criterion exists | **Refuted** — the opening reaches the frame edge in all five photos |
+
+A fourth bug surfaced while fixing this. The wall depth was a median over the top and
+side borders, which mixes depths whenever the wall is oblique; on `main_door (2)` that
+put the wall at 1.22 m where the other photograph of the same door saw 2.55 m, and
+the width estimate followed it to 1.59 m. Estimating from the ring of pixels
+immediately around the opening cannot be dragged by the opening it surrounds.
+
+| Room | Estimate | Tape | Width | Height |
+|---|---|---|---|---|
+| `master_bedroom` | 0.896 × 1.983 m | 0.80 × 2.00 m | +96 mm | **−17 mm** |
+| `second_bedroom` | 0.919 × 2.008 m | 0.80 × 2.00 m | +119 mm | **+8 mm** |
+| `main_hall` | 1.234 × 1.873 m | 1.03 × 2.09 m | +204 mm | −217 mm |
+
+**Heights pass the 20 mm gate on two of three doors. Widths pass on none.** The
+width bias is systematic and explained: the mask includes the door reveal, the few
+centimetres of jamb that genuinely belong to the opening. `main_hall` is flagged, not
+hidden — its two copies disagree by 430 mm.
+
+### The one that was about method, not code
+
+The per-room line read:
+
+    best = min(mine, key=lambda o: abs(o["height_est_m"] - d["height_m"]))
+
+It picked whichever copy of a door landed nearest the **taped** height. That is
+selecting on validation data, and it had been quietly producing a flattering 1.02 m
+for `main_hall` where the truth-free median is 1.234 m. A number chosen by how close it
+lands to the answer key is not a measurement.
+
+`consensus()` now takes a median and has **no truth parameter at all**;
+`tests/test_openings.py` asserts its only parameter is the measurement list, so this
+cannot be reintroduced by accident. Writing the median out longhand also caught a
+second bug: the obvious `sorted(v)[len(v) // 2]` returns the *upper* middle for an even
+count, so with two copies it always reported the larger one — the wild copy capturing
+the answer, which is the opposite of why a median is used.
+
+Moving this logic out of `scripts/` into `src/scan2plan/openings.py` is what made the
+synthetic-frame tests possible at all: the real photographs have no scale reference, so
+they can only ever be checked against tape afterwards, but a synthetic frame can be
+built with a known 60%-tall opening and checked directly.
