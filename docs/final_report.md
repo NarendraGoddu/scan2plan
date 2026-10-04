@@ -102,7 +102,7 @@ accuracy because it is a measuring instrument rather than an inference.
 |---|---|
 | Depth archive ingest, scale, intrinsics | Works, unit-tested |
 | Floor + ceiling segmentation | Works on real data (9.7 mm, 0.6 mm repeatability) |
-| Room boundary from walls | Works on synthetic, **fails on real** |
+| Room boundary from walls | **Fails on real data by default** (9 walls); 4/4 with the opt-in rectangular prior |
 | Dimensioned output + uncertainty | Works |
 | SVG rendering, CLI, packaging | Works, from a clean clone |
 | Monocular depth | Works, 348 maps, real planar structure verified |
@@ -197,6 +197,43 @@ edge-on, where monocular depth has almost no signal across a wall's width. Knowi
 that four photos share a wall lets us pick the best of four bad views; it cannot
 manufacture a good one. See `scripts/wall_perspective_consensus.py` and
 `scripts/diag_wall_perspectives.py`.
+
+**Room boundary selection fails on real data, and an explicit assumption fixes it.**
+On the sample archives the pipeline reports 9, 6 and 8 walls where a rectangle has 4,
+with edge lengths down to 0.166 m — noise fragments promoted to boundary walls. The
+capture photographs cannot help here: they are *deliberately* labelled (`wall_1.1` …
+`wall_4.1`, decimal = viewpoint), but the LiDAR archives are continuous walks with
+frame-index filenames and no room or wall subdivision at all. Nobody ever decided
+where "wall 1" was, so there is nothing to read.
+
+What transfers is the *prior* the labels imply: a room has four walls. Applied as an
+opt-in flag (`--rectangular`, `select_rectangular_boundary`), it picks the most nearly
+perpendicular pair of wall orientations by support, then keeps the outermost wall on
+each of the four sides:
+
+| Archive | Default | With prior | Axes chosen | Area |
+|---|---|---|---|---|
+| `single_room` | 9 walls, 8 vertices, 0.166 m sliver | **4 walls, 4 vertices** | 89.3° | 21.64 m² |
+| `floor_only` | 6 walls, 5 vertices | **4 walls, 4 vertices** | 88.5° | 95.57 m² |
+| `with_ceiling` | 8 walls, 5 vertices | **4 walls, 4 vertices** | 88.6° | 105.65 m² |
+
+**This is an assumption, not a measurement, and the flag is off by default.** The
+reason is circularity: every synthetic room in the benchmark is rectangular *by
+construction*, so a benchmark run with this prior on proves nothing about whether the
+pipeline can find a rectangle unaided. **No benchmark number in this document is
+quoted with the prior enabled**, and `tests/test_rectangular_prior.py` asserts the
+default is `False` so the benchmark cannot silently acquire the assumption.
+
+One number in that table is worth more than the wall counts: the algorithm chose axes
+at 89.3°, 88.5° and 88.6° — within 1.5° of perpendicular — from wall support alone,
+without being told the rooms were rectangular. That is independent corroboration of
+the four-wall topology from a different sensor, which is a stronger claim than the
+prior itself.
+
+Still wrong with the prior on: floor-height repeatability across split halves is
+0.6 / 189.5 / **801.0 mm**, which the prior does not touch, and the areas now exceed
+the trajectory footprints (17.3 / 73.8 / 75.7 m²) by more than the operator's reach
+alone explains.
 
 **The openings detector was searching the wrong half of the depth range.** It
 selected the largest region *nearer* than the 55th percentile. But a doorway

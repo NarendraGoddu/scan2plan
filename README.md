@@ -142,7 +142,7 @@ detection remains open.
 | `scripts/analyse_openings_and_damage.py` | Openings and damage-roughness stages |
 | `scripts/report_field_capture.py` | Tape-assisted plans for a real site |
 | `examples/field_site/` | Generated real-site plans for the three captured rooms |
-| `scripts/measure_real_baseline.py` | Real-archive baseline and disjoint-halves repeatability |
+| `scripts/measure_real_baseline.py` | Real-archive baseline and disjoint-halves repeatability; `--rectangular` opts into the right-angled-room prior |
 | `scripts/diag_boundary_rule.py` | Why a wall was kept or discarded, with the camera-path distances |
 | `scripts/diag_duplicate_frames.py` | Duplicate/redundancy audit of the sample archives |
 | `scripts/compare_baselines.py` | Side-by-side comparison of two baseline JSONs |

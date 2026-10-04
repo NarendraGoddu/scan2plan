@@ -90,10 +90,12 @@ class RoomPlan:
     perimeter_m: float = 0.0
     floor_height_m: float = 0.0
     ceiling_height_m: float | None = None
+    rectangular_prior: bool = False
     notes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         out = {
+            "rectangular_prior_applied": self.rectangular_prior,
             "basis": {
                 "a": [round(float(x), 6) for x in self.basis_a],
                 "b": [round(float(x), 6) for x in self.basis_b],
@@ -234,6 +236,48 @@ WALL_CROSS_CENTRAL_RATIO = 0.5
 WALL_OUTSIDE_SLACK_M = 0.15
 
 
+def crossed_by_path(walls: list[Wall], cam_ab: np.ndarray) -> dict[int, bool]:
+    """Which walls the camera path straddles, i.e. which stand in the room.
+
+    A room boundary has the camera path entirely on one side; an object in the
+    middle of the room has the path on both sides. So a wall whose line crosses
+    the interior of the path by more than the slack *on both sides*, and sits
+    centrally within that excursion, is furniture rather than boundary.
+
+    Centrality is what distinguishes furniture from a doorway. A wall merely
+    clipped by the path is kept, because the operator can legitimately cross a
+    wall plane on the way through a door. An earlier version discarded any
+    straddled wall and threw away both side walls of the 6.2 x 3.1 m synthetic
+    room: the path spans 4.53 m along that wall pair's normal and the extra 1.4 m
+    is the doorway. Two unparallel walls cannot bound a region, so the room
+    collapsed to 0.000 m2 with a NaN span.
+    """
+    cam = np.asarray(cam_ab, dtype=np.float64).reshape(-1, 2)
+    out: dict[int, bool] = {}
+    for w in walls:
+        d = cam @ w.normal - w.offset
+        below, above = -float(d.min()), float(d.max())
+        if below <= WALL_CROSS_SLACK_M or above <= WALL_CROSS_SLACK_M:
+            out[id(w)] = False
+            continue
+        out[id(w)] = min(below, above) >= WALL_CROSS_CENTRAL_RATIO * max(below, above)
+    return out
+
+
+def orientation_groups(walls: list[Wall]) -> list[list[Wall]]:
+    """Group walls by orientation modulo 180 degrees, strongest support first."""
+    cos_tol = math.cos(math.radians(PARALLEL_TOL_DEG))
+    groups: list[list[Wall]] = []
+    for w in sorted(walls, key=lambda x: -x.support):
+        for g in groups:
+            if abs(float(g[0].normal @ w.normal)) >= cos_tol:
+                g.append(w)
+                break
+        else:
+            groups.append([w])
+    return groups
+
+
 def select_room_boundary(
     walls: list[Wall], cam_ab: np.ndarray
 ) -> tuple[list[Wall], list[str]]:
@@ -258,35 +302,19 @@ def select_room_boundary(
 
     Returns the surviving walls and a human-readable note per rejection, so the
     report can say what was discarded rather than silently changing the answer.
+
+    This makes NO assumption about the room's shape. See
+    `select_rectangular_boundary` for the opt-in rectangular prior.
     """
     if len(walls) < 3:
         return list(walls), []
-    cam = np.asarray(cam_ab, dtype=np.float64).reshape(-1, 2)
     notes: list[str] = []
 
-    # A wall is "crossed" when the camera path passes through its line by more
-    # than the slack on both sides *and* sits centrally within that excursion,
-    # which is the signature of an object in the middle of the room.
-    def crossed(w: Wall) -> bool:
-        d = cam @ w.normal - w.offset
-        below, above = -float(d.min()), float(d.max())
-        if below <= WALL_CROSS_SLACK_M or above <= WALL_CROSS_SLACK_M:
-            return False
-        return min(below, above) >= WALL_CROSS_CENTRAL_RATIO * max(below, above)
-
-    is_crossed = {id(w): crossed(w) for w in walls}
+    is_crossed = crossed_by_path(walls, cam_ab)
 
     # Group by orientation, modulo 180 degrees: opposite walls of a rectangular
     # room are parallel and must be considered together.
-    cos_tol = math.cos(math.radians(PARALLEL_TOL_DEG))
-    groups: list[list[Wall]] = []
-    for w in sorted(walls, key=lambda x: -x.support):
-        for g in groups:
-            if abs(float(g[0].normal @ w.normal)) >= cos_tol:
-                g.append(w)
-                break
-        else:
-            groups.append([w])
+    groups = orientation_groups(walls)
 
     spanning: list[Wall] = []
     for g in groups:
@@ -350,6 +378,134 @@ def select_room_boundary(
     return spanning, notes
 
 
+RECTANGULAR_PERP_TOL_DEG = 25.0
+RECTANGULAR_ASSIGN_TOL_DEG = 50.0
+
+
+def select_rectangular_boundary(
+    walls: list[Wall], cam_ab: np.ndarray
+) -> tuple[list[Wall], list[str]]:
+    """OPT-IN PRIOR: assume the room is a rectangle, and return exactly 4 walls.
+
+    **This is an assumption, not a measurement, and it is opt-in for that reason.**
+    Read this before quoting any number it produces.
+
+    What it assumes: that the room has four vertical walls meeting at right
+    angles. That holds for the three field rooms (tape shows them rectangular
+    within 3 degrees) and it is true by construction for every synthetic room in
+    `synth.standard_rooms()`. Which is precisely the problem: because the
+    benchmark rooms are rectangular by construction, running the benchmark with
+    this prior switched on is **circular**. It cannot demonstrate that the pipeline
+    finds a rectangle unaided, and no result from it may be cited as though it
+    could. The benchmark is only meaningful with the prior OFF.
+
+    What it is for: the real sample archives, where 63 consensus wall planes
+    fragment into 8-9 boundary walls including 0.166 m slivers. Without a shape
+    prior there is no way to choose between them; with one, the choice is forced.
+
+    How it chooses the two axes, without being told them:
+      1. discard walls the camera path straddles centrally (furniture);
+      2. group the rest by orientation;
+      3. pick the pair of groups that is most nearly perpendicular and carries the
+         most support -- that is the room's two wall directions;
+      4. assign every remaining wall to whichever of those two axes it is closer
+         to, then keep the outermost on each side of each axis.
+
+    Returns the four bounding walls plus a note per rejection, as
+    `select_room_boundary` does.
+    """
+    notes: list[str] = []
+    is_crossed = crossed_by_path(walls, cam_ab)
+    standing = [w for w in walls if not is_crossed[id(w)]]
+    for w in walls:
+        if is_crossed[id(w)]:
+            notes.append(
+                f"discarded wall at offset {w.offset:+.2f} m (support {w.support}): "
+                f"camera path passes through it on both sides, so it stands in the "
+                f"middle of the room rather than bounding it"
+            )
+
+    groups = orientation_groups(standing)
+    if len(groups) < 2:
+        # The fallback's own notes must be concatenated, not replaced. An earlier
+        # version appended the reason here and then returned the fallback's notes,
+        # so the report claimed a rectangular result with no mention that the prior
+        # had bailed out -- the assumption would have been invisible.
+        notes.append(
+            f"rectangular prior NOT applied: needs two orientations, only "
+            f"{len(groups)} survived; fell back to shape-agnostic selection"
+        )
+        kept, more = select_room_boundary(walls, cam_ab)
+        return kept, notes + more
+
+    # Best perpendicular pair, by combined support.
+    best: tuple[float, list[Wall], list[Wall]] | None = None
+    for i, gi in enumerate(groups):
+        for gj in groups[i + 1 :]:
+            c = abs(float(gi[0].normal @ gj[0].normal))
+            if c > math.sin(math.radians(RECTANGULAR_PERP_TOL_DEG)):
+                continue
+            score = sum(w.support for w in gi) + sum(w.support for w in gj)
+            if best is None or score > best[0]:
+                best = (score, gi, gj)
+    if best is None:
+        notes.append(
+            f"rectangular prior NOT applied: no pair of wall orientations is "
+            f"perpendicular within {RECTANGULAR_PERP_TOL_DEG} deg; fell back to "
+            f"shape-agnostic selection"
+        )
+        kept, more = select_room_boundary(walls, cam_ab)
+        return kept, notes + more
+
+    _score, g1, g2 = best
+    axes = [
+        np.asarray(g1[0].normal, dtype=np.float64),
+        np.asarray(g2[0].normal, dtype=np.float64),
+    ]
+    notes.append(
+        f"rectangular prior applied: chose axes at "
+        f"{math.degrees(math.acos(min(1.0, abs(float(axes[0] @ axes[1]))))):.1f} deg "
+        f"with combined support {int(_score)}; this assumes a right-angled room"
+    )
+
+    kept: list[Wall] = []
+    for axis, grp in zip(axes, (g1, g2)):
+        ref = axis / np.linalg.norm(axis)
+        assign_tol = math.cos(math.radians(RECTANGULAR_ASSIGN_TOL_DEG))
+        assigned = [
+            w
+            for w in standing
+            if abs(float(ref @ w.normal)) >= assign_tol
+        ]
+        for w in standing:
+            # Identity, not `in`: Wall is a dataclass holding numpy arrays, so `==`
+            # compares elementwise and `bool()` on the result raises "truth value of
+            # an array is ambiguous". The shape-agnostic path uses `is` for the
+            # same reason.
+            if not any(w is a for a in assigned):
+                notes.append(
+                    f"discarded wall at offset {w.offset:+.2f} m (support {w.support}): "
+                    f"not parallel to either rectangular axis"
+                )
+        if not assigned:
+            assigned = list(grp)
+            notes.append(
+                f"rectangular axis had no parallel walls; kept its {len(grp)} "
+                f"strongest candidates instead"
+            )
+        ordered = sorted(assigned, key=lambda w: w.offset * np.sign(float(ref @ w.normal)))
+        for w in (ordered[0], ordered[-1]):
+            if not any(w is k for k in kept):
+                kept.append(w)
+        for w in ordered[1:-1]:
+            if not any(w is k for k in kept):
+                notes.append(
+                    f"discarded parallel wall at offset {w.offset:+.2f} m "
+                    f"(support {w.support}): interior to the rectangle"
+                )
+    return kept, notes
+
+
 def intersect_halfplanes(walls: list[Wall], interior: np.ndarray) -> np.ndarray | None:
     """Intersect the interior half-planes, returning polygon vertices.
 
@@ -399,11 +555,17 @@ def build_room_plan(
     up: np.ndarray,
     camera_positions: np.ndarray,
     min_wall_support: int = 2,
+    rectangular: bool = False,
 ) -> RoomPlan:
     """Assemble a dimensioned room from segmented planes.
 
     `camera_positions` is used only to find a point known to lie inside the
     room, which fixes which side of each wall line the interior occupies.
+
+    `rectangular=True` switches on the right-angled-room prior described in
+    `select_rectangular_boundary`. It is OFF by default and must stay off for any
+    result quoted as evidence about the synthetic benchmark, because those rooms
+    are rectangular by construction.
     """
     u = up / (np.linalg.norm(up) + 1e-12)
     pos = np.asarray(camera_positions, dtype=np.float64).reshape(-1, 3)
@@ -443,7 +605,11 @@ def build_room_plan(
 
     walls = merge_wall_fragments(raw)
     cam_ab = np.column_stack([pos @ a, pos @ b])
-    walls, discard_notes = select_room_boundary(walls, cam_ab)
+    if rectangular:
+        walls, discard_notes = select_rectangular_boundary(walls, cam_ab)
+        plan.rectangular_prior = True
+    else:
+        walls, discard_notes = select_room_boundary(walls, cam_ab)
     plan.notes.extend(discard_notes)
     plan.walls = walls
 

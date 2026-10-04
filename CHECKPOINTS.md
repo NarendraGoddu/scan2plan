@@ -436,3 +436,63 @@ Moving this logic out of `scripts/` into `src/scan2plan/openings.py` is what mad
 synthetic-frame tests possible at all: the real photographs have no scale reference, so
 they can only ever be checked against tape afterwards, but a synthetic frame can be
 built with a known 60%-tall opening and checked directly.
+
+## The rectangular-room prior, and why it is off by default
+
+The real sample archives give 9, 6 and 8 walls where a rectangle has 4, with edges
+down to 0.166 m — noise fragments promoted to boundary walls.
+
+**The capture labels cannot fix this, and it is worth being precise about why.** The
+photographs are *deliberately* labelled (`wall_1.1` … `wall_4.1`, decimal =
+viewpoint). The LiDAR archives are a continuous walk with frame-index filenames:
+
+    c00a170fe1/confidence/001099.png
+    c00a170fe1/odometry.csv
+    c00a170fe1/imu.csv
+    c00a170fe1/camera_matrix.csv
+    c00a170fe1/rgb.mp4
+
+There is one session folder and no room or wall subdivision. Nobody ever decided
+where "wall 1" was, so there is nothing to read.
+
+**What transfers is the prior the labels imply.** `select_rectangular_boundary`
+(`--rectangular`) picks the most nearly perpendicular pair of wall orientations by
+support, then keeps the outermost wall on each of the four sides:
+
+| Archive | Default | With prior | Axes chosen | Area |
+|---|---|---|---|---|
+| `single_room` | 9 walls / 8 vertices | **4 / 4** | 89.3° | 21.64 m² |
+| `floor_only` | 6 walls / 5 vertices | **4 / 4** | 88.5° | 95.57 m² |
+| `with_ceiling` | 8 walls / 5 vertices | **4 / 4** | 88.6° | 105.65 m² |
+
+**It is an assumption, not a measurement, and it is off by default.** Every synthetic
+room in the benchmark is rectangular *by construction*, so a benchmark run with the
+prior on is circular and proves nothing about finding a rectangle unaided. No
+benchmark number in the report is quoted with it enabled, and
+`tests/test_rectangular_prior.py` asserts the default is `False` so the benchmark
+cannot silently acquire the assumption.
+
+The axes coming out at 89.3° / 88.5° / 88.6°, chosen from support alone, are worth more
+than the wall counts: that is independent corroboration of the four-wall topology from
+a different sensor than the labels.
+
+Not fixed: floor-height repeatability is still 0.6 / 189.5 / **801.0 mm** across split
+halves, and areas exceed the trajectory footprints by more than reach explains.
+
+### Two bugs found while testing it
+
+Both fallback paths appended the reason the prior had bailed out and then returned the
+*fallback's* notes, discarding it. The report would have claimed a rectangular result
+with no mention that the assumption had not been applied — the worst possible failure
+mode for a function whose whole purpose is to be transparent about its assumptions.
+
+`if w not in assigned` raised `ValueError: truth value of an array is ambiguous`,
+because `Wall` is a dataclass holding numpy arrays, so `==` compares elementwise. The
+shape-agnostic path uses identity (`is`) for exactly this reason; the new code now
+does too, and a test pins it.
+
+Writing the tests also showed the shape-agnostic path returns 4 walls for clutter
+angled 9° from an axis, because that is inside `PARALLEL_TOL_DEG = 12°` and gets
+absorbed into the existing group. Reproducing the real 9-wall failure needed angles
+past that tolerance — worth knowing, because it means modest orientation error is not
+what breaks real scans.

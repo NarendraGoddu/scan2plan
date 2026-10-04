@@ -73,7 +73,8 @@ def _wall_offsets(plan) -> dict:
     return {k: float(np.mean(v)) for k, v in out.items()}
 
 
-def analyse(name: str, zip_name: str, frame_stride: int, motion_m: float | None) -> dict:
+def analyse(name: str, zip_name: str, frame_stride: int, motion_m: float | None,
+            rectangular: bool = False) -> dict:
     path = os.path.join(DATA, zip_name)
     t0 = time.time()
     cap = load_zip(path, frame_stride=1)
@@ -95,6 +96,7 @@ def analyse(name: str, zip_name: str, frame_stride: int, motion_m: float | None)
 
     rec: dict = {
         "archive": zip_name,
+        "rectangular_prior": bool(rectangular),
         "frames_in_archive": int(loaded),
         "frame_stride": frame_stride if motion_m is None else None,
         "motion_dedup_m": motion_m,
@@ -105,7 +107,7 @@ def analyse(name: str, zip_name: str, frame_stride: int, motion_m: float | None)
 
     full = segment_capture(view, SCALE, frame_stride=1, point_stride=POINT_STRIDE)
     up = full["up"]
-    plan = build_room_plan(full["planes"], up, view.positions)
+    plan = build_room_plan(full["planes"], up, view.positions, rectangular=rectangular)
     floors, ceils = _horizontal(full["planes"], "floor"), _horizontal(full["planes"], "ceiling")
 
     print(f"  consensus planes: "
@@ -160,7 +162,7 @@ def analyse(name: str, zip_name: str, frame_stride: int, motion_m: float | None)
             rec["repeatability"] = None
             return rec
         r = segment_capture(sub, SCALE, frame_stride=1, point_stride=POINT_STRIDE)
-        p = build_room_plan(r["planes"], r["up"], sub.positions)
+        p = build_room_plan(r["planes"], r["up"], sub.positions, rectangular=rectangular)
         fl, ce = _horizontal(r["planes"], "floor"), _horizontal(r["planes"], "ceiling")
         fits[label] = {
             "frames": len(frames),
@@ -202,15 +204,22 @@ def main() -> None:
                     help="keep only frames that moved at least M metres since the "
                          "last kept frame, instead of subsampling by index")
     ap.add_argument("--out", default=None, help="output JSON (default runs/real_baseline.json)")
+    ap.add_argument("--rectangular", action="store_true",
+                    help="assume the room is a right-angled rectangle and keep "
+                         "exactly four bounding walls. OFF by default. This is an "
+                         "ASSUMPTION, not a measurement, and it must not be used "
+                         "when reporting the synthetic benchmark: those rooms are "
+                         "rectangular by construction, so the comparison is circular.")
     args = ap.parse_args()
 
-    out = {}
+    out = {"_rectangular_prior": bool(args.rectangular)}
     for name, zip_name, stride in ARCHIVES:
         if not os.path.isfile(os.path.join(DATA, zip_name)):
             print(f"skip {name}: {zip_name} not found under {DATA}")
             continue
         try:
-            out[name] = analyse(name, zip_name, stride, args.motion_dedup)
+            out[name] = analyse(name, zip_name, stride, args.motion_dedup,
+                                rectangular=args.rectangular)
         except Exception as e:  # keep going; a partial baseline is still evidence
             print(f"  FAILED {name}: {type(e).__name__}: {e}")
             out[name] = {"archive": zip_name, "error": f"{type(e).__name__}: {e}"}
