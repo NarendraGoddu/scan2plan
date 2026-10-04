@@ -43,13 +43,18 @@ matters against a tight gate.
 ## Install
 
 ```
-pip install -r requirements.txt        # core: numpy, pillow, scipy
-python -m pytest tests -q             # 30 tests, ~70 s
+pip install -e ".[analysis,depth]"         # core + tests + monocular depth
+python scripts/fetch_depth_model.py        # 99 MB ONNX weights, once
+python -m pytest tests -q                  # 51 tests, ~60 s
 ```
 
-`requirements.txt` also lists an `analysis` extra (matplotlib, pytest). Neither
-core nor analysis pulls in a deep-learning stack — see the trade-offs below for
-why that is deliberate.
+`depth` pulls in ONNX Runtime and OpenCV (~15 MB between them). Neither core nor
+analysis pulls in a deep-learning framework: the depth network runs through an
+exported ONNX graph rather than PyTorch, because this is a CPU-only path and the
+torch wheel would be multi-gigabyte. See the trade-offs below.
+
+Nothing above is needed for the automatic pipeline — `data/demo_room.zip` runs with
+`numpy`, `pillow` and `scipy` alone.
 
 ## Using it on your own capture
 
@@ -80,6 +85,37 @@ subsampling twice silently throws away most of the archive.
 Exit status is non-zero when no room was recovered, so this works as a build
 step.
 
+## Photographs and a real site
+
+Ordinary photos and video go through a different route. Depth is predicted with
+Depth Anything V2, planes are fitted to the lifted point cloud, and labels in the
+filenames select which surface each frame is evidence for.
+
+```bash
+python scripts/depth_capture.py --skip-existing      # depth for every photo + video
+python scripts/measure_walls_from_depth.py           # per-wall, per-room dimensions
+python scripts/analyse_openings_and_damage.py        # openings and damage
+python scripts/report_field_capture.py --out out/field   # tape-assisted site plans
+```
+
+**Two things to know before trusting any number from this route.**
+
+Depth is *relative*. Depth Anything predicts inverse depth with a per-image
+arbitrary scale and shift, so nothing is a measurement until an external scale
+anchors it. This capture has no scale reference in any of its 238 frames and no
+surviving EXIF, which is what caps the photo tier.
+
+`report_field_capture.py` exists because of that. Its dimensions come from the
+steel tape in `data/field_ground_truth.json`, and every document it writes carries
+`geometry_is_measured_not_reconstructed: true`. The photographs are attached as
+evidence per wall and are not used to derive any dimension. Do not read those
+plans as reconstruction results.
+
+Filename labels (`m_wall_2.5.jpg`, `2_room_wall_1 (3).jpg`, `wall_1_crack (1).jpg`)
+are used to *select and evaluate* evidence. They are not a production input: a
+client's photos will be named `IMG_20261004_103746.jpg`, and pixel-only wall
+detection remains open.
+
 ## Repository map
 
 | Path | What it is |
@@ -91,9 +127,19 @@ step.
 | `src/scan2plan/report.py` | Result document and SVG rendering |
 | `src/scan2plan/synth.py` | Seeded synthetic room generator with exact truth |
 | `src/scan2plan/drift.py` | Drift measurement against a reference plane |
+| `src/scan2plan/monodepth.py` | Depth Anything V2 via ONNX Runtime, relative-depth handling |
+| `src/scan2plan/depth_geometry.py` | Plane fitting on lifted depth, vertical recovery from the floor |
+| `src/scan2plan/capture_manifest.py` | Room / surface / wall labels recovered from filenames |
 | `scripts/plan_room.py` | The CLI |
 | `scripts/benchmark_synthetic.py` | Scores the pipeline against known rooms |
 | `scripts/verify_synth.py` | Generator self-checks, including a geometry round-trip |
+| `scripts/depth_capture.py` | Depth over every photo and video in a capture |
+| `scripts/measure_walls_from_depth.py` | Per-wall measurement from wall-labelled photos |
+| `scripts/analyse_openings_and_damage.py` | Openings and damage-roughness stages |
+| `scripts/report_field_capture.py` | Tape-assisted plans for a real site |
+| `scripts/measure_real_baseline.py` | Real-archive baseline and disjoint-halves repeatability |
+| `docs/final_report.md` | **Start here** — results, negative results, next steps |
+| `docs/compliance_matrix.md` | Requirement-by-requirement status with evidence |
 | `docs/capture_protocol.pdf` | Field capture protocol for collecting new data |
 | `docs/site_day.pdf` | Short on-site runbook actually followed: tape, room photos, damage. Its Magicplan step could not be executed — see Limitations. |
 | `CHECKPOINTS.md` | Working log: what was tried, what broke, what it cost |

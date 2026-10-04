@@ -330,10 +330,23 @@ def _svg_title_block(doc, w, h, margin) -> str:
         sig = u.get("ceiling_height_1sigma_m")
         tail = f" +/-{sig * 1000:.0f} mm" if sig is not None else ""
         lines.append(f"ceiling height {ch:.3f} m{tail}")
-    lines.append(f"walls {q['n_walls']}   frames used {i['frames_used']}/{i['frames_in_archive']}")
-    auc = u.get("floor_area_1sigma_pct")
-    if auc is not None:
-        lines.append(f"floor area +/-{auc:.2f}% (1 sigma)")
+    # A tape-assisted report has no depth frames to count, so the line reports what
+    # the geometry actually is instead. Saying "frames used" for a document whose
+    # dimensions came off a tape would be a fabrication in the title block.
+    if doc.get("geometry_is_measured_not_reconstructed"):
+        src = str(doc.get("geometry_source", "measured")).split(" (")[0]
+        lines.append(f"walls {q.get('n_walls', len(doc['room'].get('walls') or []))}"
+                     f"   geometry: {src}")
+        lines.append("dimensions are MEASURED, not reconstructed from imagery")
+    else:
+        lines.append(
+            f"walls {q.get('n_walls', len(doc['room'].get('walls') or []))}"
+            f"   frames used {i.get('frames_used', 0)}/"
+            f"{i.get('frames_in_archive', 0)}"
+        )
+        auc = u.get("floor_area_1sigma_pct")
+        if auc is not None:
+            lines.append(f"floor area +/-{auc:.2f}% (1 sigma)")
     lines.append("plan view in the gravity-aligned floor frame; no compass direction implied")
 
     ty = h - margin - 76
