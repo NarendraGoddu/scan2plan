@@ -40,7 +40,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from scan2plan.capture_manifest import group_by_wall, scan_capture  # noqa: E402
 from measure_walls_from_depth import (  # noqa: E402
     dominant_wall,
-    focal_from_hfov,
     load_depth,
     split_extent,
 )

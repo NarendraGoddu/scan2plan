@@ -101,7 +101,7 @@ def test_openings_return_nothing():
     """A ray into an opening must yield no return, not a wall behind it."""
     room = Room(5.00, 4.00, 2.70,
                 [{"face": "x1", "u0": 1.5, "u1": 2.5, "v0": 0.0, "v1": 2.10, "kind": "door"}])
-    cap = render_capture(room, n_frames=4, seed=5)
+    render_capture(room, n_frames=4, seed=5)
 
     # Aim straight down the +x axis at the middle of the door from x=0.
     o = np.array([0.0, 1.05, 2.00])

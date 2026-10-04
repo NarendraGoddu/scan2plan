@@ -6,10 +6,15 @@ by the page break, which is how a field booklet ends up unreadable on site.
     python scripts/check_page_fit.py [docs/capture_protocol.html]
 """
 
-import re, subprocess, pathlib, time, sys
+import re
+import subprocess
+import pathlib
+import time
+import sys
 
 target = sys.argv[1] if len(sys.argv) > 1 else 'docs/capture_protocol.html'
-html = open(target, encoding='utf-8').read()
+with open(target, encoding='utf-8') as fh:
+    html = fh.read()
 head = html[:html.index('<body>') + 6]
 marker = '<div class="page">'
 parts = html.split(marker)

@@ -43,7 +43,6 @@ sys.path.insert(0, os.path.join(ROOT, "src"))
 from scan2plan.capture_manifest import scan_capture  # noqa: E402
 from scan2plan.depth_geometry import (  # noqa: E402
     anchor_scale,
-    unproject_depth,
 )
 
 NOMINAL_MEDIAN_M = 3.0

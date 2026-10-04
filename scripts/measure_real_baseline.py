@@ -151,8 +151,8 @@ def analyse(name: str, zip_name: str, frame_stride: int, motion_m: float | None,
     idx = [int(i) for i in sel]
     mid = len(idx) // 2
     halves = {
-        "first": [i for i in idx[:mid]],
-        "second": [i for i in idx[mid:]],
+        "first": list(idx[:mid]),
+        "second": list(idx[mid:]),
     }
     fits = {}
     for label, frames in halves.items():

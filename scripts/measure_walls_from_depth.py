@@ -271,9 +271,9 @@ def main() -> None:
             groups = [[v for v in wall_meds if abs(v - c[0]) <= abs(v - c[1])],
                       [v for v in wall_meds if abs(v - c[0]) > abs(v - c[1])]]
             new = []
-            for g, centre in zip(groups, c):
+            for g, centre in zip(groups, c, strict=False):
                 new.append(float(np.mean(g)) if g else centre)
-            if max(abs(a - b) for a, b in zip(new, c)) < 1e-6:
+            if max(abs(a - b) for a, b in zip(new, c, strict=False)) < 1e-6:
                 c = new
                 break
             c = new

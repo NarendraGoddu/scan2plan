@@ -43,7 +43,6 @@ def mp4_info(path: str) -> dict:
     i = data.find(b"tkhd")
     if i > 0:
         version = data[i + 4]
-        off = i + 4 + (32 if version == 1 else 20)
         # width/height are the last two 16.16 fixed values in tkhd
         w, h = struct.unpack(">II", data[i + 4 + (84 if version == 1 else 76):][:8])
         info["resolution"] = (w >> 16, h >> 16)

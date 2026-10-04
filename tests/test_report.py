@@ -40,7 +40,7 @@ def _rect_plan(length: float = 4.60, width: float = 3.40, height: float = 2.72) 
             corners_ab[:, 1][:, None] * b,
         ]
     )
-    plan = RoomPlan(
+    return RoomPlan(
         basis_a=a, basis_b=b, up=up, walls=walls,
         vertices_ab=corners_ab, vertices_world=verts_world,
         edge_lengths_m=[width, length, width, length],
@@ -50,7 +50,6 @@ def _rect_plan(length: float = 4.60, width: float = 3.40, height: float = 2.72) 
         floor_height_m=-1.45,
         ceiling_height_m=height - 1.45,
     )
-    return plan
 
 
 class _Plane:

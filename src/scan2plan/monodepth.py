@@ -127,7 +127,7 @@ class DepthStats:
     near_ratio: float  # fraction of pixels in the closest 10% of the range
 
     @classmethod
-    def from_depth(cls, path: str, depth: np.ndarray, near_frac: float = 0.10) -> "DepthStats":
+    def from_depth(cls, path: str, depth: np.ndarray, near_frac: float = 0.10) -> DepthStats:
         lo, mid, hi = np.percentile(depth, [1, 50, 99])
         span = max(float(hi - lo), 1e-9)
         return cls(

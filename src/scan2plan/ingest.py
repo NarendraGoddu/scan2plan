@@ -59,7 +59,7 @@ class Capture:
     def depth_hw(self) -> tuple[int, int]:
         return self.depth.shape[1], self.depth.shape[2]
 
-    def subset(self, frames: "list[int] | range | np.ndarray") -> "Capture":
+    def subset(self, frames: list[int] | range | np.ndarray) -> Capture:
         """A view of this capture over `frames`, keeping every array aligned.
 
         Needed to measure repeatability: segmenting two disjoint halves of the

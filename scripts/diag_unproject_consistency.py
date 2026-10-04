@@ -16,7 +16,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
 from scan2plan.ingest import load_zip, poses_to_matrices
-from scan2plan.synth import DEPTH_SCALE_M, plan_trajectory, standard_rooms
+from scan2plan.synth import plan_trajectory, standard_rooms
 from scan2plan.unproject import frame_points_world
 
 room = standard_rooms()["nominal"]

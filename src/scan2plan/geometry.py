@@ -95,7 +95,7 @@ def segment_connected(mask2d: np.ndarray, min_size: int = 4) -> list[np.ndarray]
     h, w = mask2d.shape
     seen = np.zeros((h, w), dtype=bool)
     out: list[np.ndarray] = []
-    for sy, sx in zip(*np.nonzero(mask2d)):
+    for sy, sx in zip(*np.nonzero(mask2d), strict=False):
         if seen[sy, sx]:
             continue
         stack = [(sy, sx)]

@@ -152,7 +152,7 @@ def main() -> int:
         print(f"    touches bottom: {touches_bottom}   touches top: {touches_top}")
         print(f"    near fraction upper half {upper:.3f} vs lower half {lower:.3f} "
               f"(ratio {lower / max(upper, 1e-9):.2f})")
-        print(f"    mean depth by band: "
+        print("    mean depth by band: "
               + "  ".join(
                   f"{lab} {dm[a:b].mean():.2f}m"
                   for lab, a, b in (

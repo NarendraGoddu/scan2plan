@@ -551,6 +551,23 @@ Two things worth recording:
 The merged floor consensus has rms 157 mm where the primary candidate alone has 8.6 mm.
 `consolidate_horizontal` weights the pooled normal and offset by support, but the
 `inlier_points` refit concatenates every member's points **unweighted**, so a
-support-14 striver at 0.25 m from the floor dilutes a support-301 surface. The fix is a
-support-weighted plane refit; not done here because the repeatability gate, not rms, is
-what the assessment scores.
+support-14 striver 0.25 m from the floor counts as much as the support-301 floor.
+
+Weighting the pooled refit is the obvious fix, and it was tried and **reverted**.
+Scaling each member's block by `sqrt(support)` is the correct weighted
+least-squares objective and needs no point replication, but it made the result far
+worse: floor height −13.48 m at rms 7082 mm, against −1.5730 m at rms 157 mm before.
+
+The reason is conditioning, not the weighting idea. These points sit ~1.5 m from the
+origin, so multiplying by `sqrt(301) ≈ 17` moves them to ~26 m while the spread along
+the floor stays ~0.05 m. The smallest singular value the SVD has to resolve is then a
+variance ratio of order 3×10⁵, and `d2 = n2 @ centroid` amplifies the floating-point
+error in that direction straight into the reported offset. Scaling before an SVD is the
+wrong order of operations.
+
+The correct construction is to build the weighted covariance explicitly,
+`C = Σ_i w_i (p_i − c)(p_i − c)ᵀ`, and take its smallest eigenvector, which never
+leaves the well-conditioned coordinate frame the points are already in. That is a
+rewrite of the refit rather than a two-line change, and it has no test that would catch
+a silent regression, so it is left undone and recorded here instead. The gate that
+matters for the assessment is split-half repeatability, not rms.

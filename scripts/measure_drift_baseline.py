@@ -1,10 +1,11 @@
 """Baseline drift measurement under the supplied poses (the 'before' run)."""
-import os, sys, json
-import numpy as np
+import os
+import sys
+import json
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src'))
 from scan2plan.ingest import load_zip
-from scan2plan.unproject import calibrate_scale, gravity_axis
+from scan2plan.unproject import gravity_axis
 from scan2plan.drift import measure_drift, drift_trend
 
 DATA = os.environ.get('SCAN2PLAN_SAMPLE_DATA',

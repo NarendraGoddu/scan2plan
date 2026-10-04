@@ -323,8 +323,11 @@ def select_room_boundary(
         ref = g[0].normal / np.linalg.norm(g[0].normal)
         sgn = float(np.sign(ref @ g[0].normal)) or 1.0
 
-        def rank(w: Wall) -> float:
-            return w.offset * (sgn if abs(float(ref @ w.normal)) > 0 else 1.0)
+        # `ref` and `sgn` are bound as defaults rather than captured: the closure
+        # is only ever called inside this iteration, but binding them makes that
+        # a guarantee instead of a coincidence someone can later break.
+        def rank(w: Wall, _ref: np.ndarray = ref, _sgn: float = sgn) -> float:
+            return w.offset * (_sgn if abs(float(_ref @ w.normal)) > 0 else 1.0)
 
         ordered = sorted(g, key=rank)
 
@@ -469,7 +472,7 @@ def select_rectangular_boundary(
     )
 
     kept: list[Wall] = []
-    for axis, grp in zip(axes, (g1, g2)):
+    for axis, grp in zip(axes, (g1, g2), strict=False):
         ref = axis / np.linalg.norm(axis)
         assign_tol = math.cos(math.radians(RECTANGULAR_ASSIGN_TOL_DEG))
         assigned = [
@@ -580,10 +583,7 @@ def build_room_plan(
     # Floor plane as the vertical datum, expressed as a height along u.
     if floor is not None:
         denom = float(floor.normal @ u)
-        if abs(denom) > 1e-6:
-            floor_h = float(floor.offset) / denom
-        else:
-            floor_h = 0.0
+        floor_h = float(floor.offset) / denom if abs(denom) > 1e-06 else 0.0
     else:
         floor_h = 0.0
 
@@ -628,7 +628,7 @@ def build_room_plan(
     edges = nxt - poly
     mids = poly + edges / 2.0
     lengths, which = [], []
-    for e, m in zip(edges, mids):
+    for e, m in zip(edges, mids, strict=False):
         lengths.append(float(np.linalg.norm(e)))
         j = int(np.argmin([w.distance_to(m) for w in walls]))
         which.append(j)

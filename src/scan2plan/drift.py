@@ -225,7 +225,7 @@ def drift_trend(capture: Capture, drift: dict) -> dict:
     frames = np.array([p["frame"] for p in drift["per_frame"]])
     heights = np.array([p["height_m"] for p in drift["per_frame"]])
     order = np.argsort(frames)
-    f, h = frames[order].astype(float), heights[order]
+    h = heights[order]
     # Cumulative distance from the first fitted frame, seeded with 0 so it
     # lines up with h rather than being one element short.
     steps = np.linalg.norm(

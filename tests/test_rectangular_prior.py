@@ -60,7 +60,7 @@ def true_walls():
 
 def clutter():
     """Furniture and slivers: what a real capture actually produces."""
-    out = [
+    return [
         # Straddled by the camera path, so furniture standing in the room.
         wall(1, 0, 0.0, support=40),
         wall(0, 1, 0.0, support=35),
@@ -75,7 +75,6 @@ def clutter():
         wall(math.cos(math.radians(25)), math.sin(math.radians(25)), 1.4, support=6),
         wall(math.cos(math.radians(-30)), math.sin(math.radians(-30)), -1.1, support=5),
     ]
-    return out
 
 
 # --- the prior does what it claims ----------------------------------------

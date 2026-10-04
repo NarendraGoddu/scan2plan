@@ -26,7 +26,7 @@ from typing import Any
 
 import numpy as np
 
-from .plan import RoomPlan, polygon_area
+from .plan import RoomPlan
 
 SCHEMA_VERSION = "1.0"
 
@@ -251,7 +251,6 @@ def render_svg(doc: dict[str, Any], *, margin: int = 70) -> str:
         return (margin + 60 + (p[0] - lo[0]) * scale, margin + 60 + (hi[1] - p[1]) * scale)
 
     pts = [to_px(p) for p in ab]
-    path_d = "M " + " L ".join(f"{x:.2f},{y:.2f}" for x, y in pts) + " Z"
 
     parts: list[str] = []
     parts.append(
@@ -259,7 +258,6 @@ def render_svg(doc: dict[str, Any], *, margin: int = 70) -> str:
         'class="room" />'
     )
 
-    walls = room.get("walls") or []
     lengths = doc["quality"].get("edge_lengths_m") or []
     unc = (doc.get("uncertainty") or {}).get("wall_position_1sigma_m") or []
 
@@ -350,7 +348,7 @@ def _svg_title_block(doc, w, h, margin) -> str:
     lines.append("plan view in the gravity-aligned floor frame; no compass direction implied")
 
     ty = h - margin - 76
-    out = [f'<g class="titleblock">']
+    out = ['<g class="titleblock">']
     for k, line in enumerate(lines):
         out.append(
             f'<text x="{margin}" y="{ty + 14 * k:.2f}" class="title">{line}</text>'

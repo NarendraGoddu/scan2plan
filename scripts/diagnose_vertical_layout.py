@@ -4,7 +4,8 @@ Prints, for a few frames: camera height along the gravity axis, and the height
 distribution of reconstructed points. The floor/ceiling assignment should fall
 out of the data rather than out of my assumptions about which way is up.
 """
-import os, sys
+import os
+import sys
 import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src'))

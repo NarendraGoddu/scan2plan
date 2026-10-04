@@ -11,4 +11,5 @@ for m in mods:
 
 print()
 print('requirements.txt:')
-print(open('requirements.txt').read())
+with open('requirements.txt', encoding='utf-8') as fh:
+    print(fh.read())

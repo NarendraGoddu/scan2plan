@@ -73,7 +73,7 @@ def analyse(name: str, path: str, near_m: float) -> None:
     d_uniq, d_rep = _count_groups(d_keys)
     p_keys = _pose_keys(cap.positions)
     p_uniq, p_rep = _count_groups(p_keys)
-    both = _count_groups([a + b for a, b in zip(d_keys, p_keys)])
+    both = _count_groups([a + b for a, b in zip(d_keys, p_keys, strict=False)])
 
     print(f"  unique depth           {d_uniq:5d}   repeated {d_rep:5d} "
           f"({100.0 * d_rep / n:5.1f}%)")

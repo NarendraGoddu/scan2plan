@@ -1,6 +1,6 @@
 """Run plane segmentation on the sample archives and inspect the geometry."""
-import os, sys, json
-import numpy as np
+import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src'))
 from scan2plan.ingest import load_zip

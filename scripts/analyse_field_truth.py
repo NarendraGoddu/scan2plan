@@ -24,7 +24,6 @@ from __future__ import annotations
 import json
 import math
 import os
-import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -32,7 +31,8 @@ PATH = os.path.join(ROOT, "data", "field_ground_truth.json")
 
 
 def main() -> None:
-    gt = json.load(open(PATH, encoding="utf-8"))
+    with open(PATH, encoding="utf-8") as fh:
+        gt = json.load(fh)
     rooms = gt["rooms"]
 
     print(f"{'room':<18}{'L (m)':>8}{'W (m)':>8}{'d (m)':>8}"

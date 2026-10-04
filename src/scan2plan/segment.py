@@ -437,8 +437,8 @@ def consolidate_horizontal(
 
     rejected: list[str] = []
     if plausible is not None and plausible.any():
-        pool = [p for p, ok in zip(cands, plausible) if ok]
-        for p, ok, r in zip(cands, plausible, reach):
+        pool = [p for p, ok in zip(cands, plausible, strict=False) if ok]
+        for p, ok, r in zip(cands, plausible, reach, strict=False):
             if not ok:
                 rejected.append(
                     f"{p.offset * (p.normal @ u):+.3f} m "
@@ -460,13 +460,13 @@ def consolidate_horizontal(
         return primary
 
     # Inlier-weighted consensus over the members that agree with the primary.
-    w = np.array([p.support for p, keep in zip(cands, within) if keep], dtype=np.float64)
-    n = (w[:, None] * np.stack([p.normal for p, keep in zip(cands, within) if keep])).sum(0)
+    w = np.array([p.support for p, keep in zip(cands, within, strict=False) if keep], dtype=np.float64)
+    n = (w[:, None] * np.stack([p.normal for p, keep in zip(cands, within, strict=False) if keep])).sum(0)
     n = orthonormalize(n)
     offs = np.array(
         [
             float(p.offset * (p.normal @ n))
-            for p, keep in zip(cands, within)
+            for p, keep in zip(cands, within, strict=False)
             if keep
         ]
     )
@@ -474,7 +474,7 @@ def consolidate_horizontal(
 
     pooled = [
         p.inlier_points
-        for p, keep in zip(cands, within)
+        for p, keep in zip(cands, within, strict=False)
         if keep and p.inlier_points.size
     ]
     pooled_arr = np.concatenate(pooled, axis=0) if pooled else np.zeros((0, 3))
@@ -486,7 +486,7 @@ def consolidate_horizontal(
         resid = np.abs(pooled_arr @ n2 - d2)
         offset, n, rms = d2, n2, float(np.sqrt(np.mean(resid**2)))
     else:
-        rms = float(np.mean([p.rms_m for p, keep in zip(cands, within) if keep]))
+        rms = float(np.mean([p.rms_m for p, keep in zip(cands, within, strict=False) if keep]))
 
     merged = Plane(
         normal=n,

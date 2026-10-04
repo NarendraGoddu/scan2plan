@@ -78,7 +78,6 @@ def evaluate(names=None, load_stride=2, point_stride=4):
         gt_h = truth["room_height_m"]
 
         edges = sorted(plan.edge_lengths_m) if plan.edge_lengths_m else []
-        gt_edges = sorted([gt_L, gt_W, gt_L, gt_W])
         if len(edges) == 4:
             eL, eW = edges[1], edges[2]  # the two distinct spans
         elif len(edges) >= 2:
@@ -89,13 +88,17 @@ def evaluate(names=None, load_stride=2, point_stride=4):
 
         # Match each estimated span to whichever true dimension is closer, so
         # a rotated floor basis does not read as a large error.
-        def best_pair(a, b):
-            if abs(a - gt_L) <= abs(a - gt_W):
-                return a, b, gt_L, gt_W
+        #
+        # `gt_L`/`gt_W` are bound as defaults rather than captured from the loop.
+        # Every error number this script prints is quoted in the report, so a
+        # late-binding bug here would be silently wrong rather than loudly wrong.
+        def best_pair(a, b, _L=gt_L, _W=gt_W):
+            if abs(a - _L) <= abs(a - _W):
+                return a, b, _L, _W
             # `a` already pairs with gt_W and `b` with gt_L, so only the truths
             # move. Swapping the estimates too would compare each span against
             # the dimension it is not.
-            return a, b, gt_W, gt_L
+            return a, b, _W, _L
 
         e_L, e_W, t_L, t_W = best_pair(eL, eW)
 

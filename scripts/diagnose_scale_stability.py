@@ -1,5 +1,7 @@
 """Is the plane-overlap scale estimator stable, or just lucky at full settings?"""
-import os, sys, time
+import os
+import sys
+import time
 import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src'))

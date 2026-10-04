@@ -93,7 +93,6 @@ def horizontal_candidates(cap, frames, up):
     which is where the one-floor rule is imposed and where the choice is made.
     """
     from scan2plan.ingest import poses_to_matrices
-    from scan2plan.plan import floor_basis
     from scan2plan.segment import (
         classify_planes,
         cluster_planes,

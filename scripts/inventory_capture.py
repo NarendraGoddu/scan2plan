@@ -15,13 +15,12 @@ from __future__ import annotations
 import json
 import os
 import sys
-from collections import Counter, defaultdict
+from collections import Counter
 
 import numpy as np
 from PIL import Image, ExifTags
 
 try:
-    from PIL import Image as _I
     HAVE_VIDEO = True
 except Exception:
     HAVE_VIDEO = False
@@ -134,7 +133,7 @@ def main() -> None:
             vp = os.path.join(fdir, v)
             entry["videos"].append({"name": v, "bytes": os.path.getsize(vp)})
         if videos:
-            print(f"  videos:")
+            print("  videos:")
             for v in entry["videos"]:
                 print(f"     {v['name']:<34} {v['bytes'] / 1e6:7.1f} MB")
 

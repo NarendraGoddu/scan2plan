@@ -36,6 +36,12 @@ depth = [
     "opencv-python-headless>=4.9",
 ]
 
+# Linting. Not part of the runtime install: this is a development-time gate,
+# and it runs in well under a second.
+dev = [
+    "ruff>=0.16",
+]
+
 [project.scripts]
 scan2plan-plan = "scan2plan.cli:main"
 
@@ -47,3 +53,32 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+# 120 rather than ruff's default 88. The long lines this admits are data-formatting
+# and HTML/CSS strings in the diagnostic scripts and the SVG writer, where wrapping
+# hurts readability more than it helps. The longest line in src/scan2plan is 106
+# characters (report.py, segment.py); nothing exceeds 120.
+line-length = 120
+src = ["src", "scripts", "tests"]
+
+[tool.ruff.lint]
+# E/F/W are correctness. B catches the closure-over-loop-variable and
+# zip-truncation classes, which are silent-wrong-answer bugs rather than style.
+# ARG is off in tests because deliberately-unused parameters are how test helpers
+# document the signature they are standing in for.
+select = ["E", "F", "W", "B", "SIM", "UP", "C4", "RET"]
+
+# "%d" formatting is used deliberately where an f-string would be longer and
+# less readable; printf-style is not a correctness issue.
+ignore = [
+    "UP031",   # "%d" formatting is used deliberately where an f-string is longer
+    "SIM108",  # the suggested ternary at monodepth.py:155 is a 130-character line,
+               # so the "fix" is strictly less readable than the if/else it replaces
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Scripts and tests deliberately adjust sys.path before importing, so the import
+# block is genuinely not at the top of the file.
+"scripts/*" = ["E402"]
+"tests/*" = ["E402", "ARG001", "F401"]

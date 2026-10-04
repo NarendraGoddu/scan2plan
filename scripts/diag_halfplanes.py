@@ -13,7 +13,6 @@ from scan2plan.plan import (
     floor_basis, merge_wall_fragments, wall_from_plane,
 )
 from scan2plan.segment import segment_capture
-from scan2plan.unproject import gravity_axis
 
 cap = load_zip(os.path.join(ROOT, "data", "synthetic", "nominal.zip"), frame_stride=2)
 seg = segment_capture(cap, 0.001, frame_stride=1, point_stride=4)
@@ -25,7 +24,7 @@ interior = np.array([float(centre @ a), float(centre @ b)])
 
 print(f"up {np.round(u, 4)}   basis a {np.round(a, 4)}  b {np.round(b, 4)}")
 print(f"interior point (alpha,beta) = {np.round(interior, 4)}")
-print(f"true room: x[0,4.6] z[0,3.4]; camera centre should be well inside\n")
+print("true room: x[0,4.6] z[0,3.4]; camera centre should be well inside\n")
 
 raw = []
 for p in seg["planes"]:
