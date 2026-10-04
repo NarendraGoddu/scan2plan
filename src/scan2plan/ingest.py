@@ -96,6 +96,64 @@ class Capture:
         )
 
 
+def motion_dedup(
+    positions: np.ndarray,
+    quats: np.ndarray,
+    min_translation_m: float = 0.05,
+    min_rotation_deg: float = 2.0,
+    indices: np.ndarray | range | None = None,
+) -> np.ndarray:
+    """Keep frames that add a genuinely new viewpoint.
+
+    Index-based subsampling is the wrong tool for a handheld capture. These
+    archives are recorded at 60 Hz while the operator walks, so consecutive frames
+    are 8-9 mm apart and 95-98% of them move the camera less than 2 cm. Frame *n*
+    and frame *n+1* see almost the same thing from almost the same place.
+
+    That redundancy is not harmless, because plane `support` counts observations.
+    A surface the operator stood in front of for three seconds collects hundreds of
+    near-identical observations, while a real wall they glanced at collects a few.
+    Ranking candidate walls by support then ranks them by how long someone lingered,
+    and furniture the operator paused beside outranks the wall behind it. Keeping
+    only frames that actually moved removes that bias, so support means roughly
+    "distinct viewpoints that saw this surface".
+
+    Not the same as dropping duplicate frames -- there are none. Measured on the
+    three supplied archives: 0 byte-identical depth frames out of 1715 / 5251 /
+    9745, while a 5 cm motion threshold still discards 71% / 71% / 70% of them as
+    redundant. See scripts/diag_duplicate_frames.py.
+
+    `indices` restricts the scan to a subset (used for the disjoint-halves
+    repeatability check), so each half is deduplicated independently and the two
+    halves stay disjoint.
+
+    The first and last frame of the pool are always kept. Without that, a capture
+    whose final frames are all within the threshold of the last kept one loses its
+    endpoint, and the path extent used downstream comes up short.
+    """
+    pos = np.asarray(positions, dtype=np.float64).reshape(-1, 3)
+    quat = np.asarray(quats, dtype=np.float64).reshape(-1, 4)
+    pool = np.arange(len(pos)) if indices is None else np.asarray(indices, dtype=np.int64)
+    if pool.size == 0:
+        return pool
+
+    cos_limit = float(np.cos(np.radians(min_rotation_deg)))
+    kept: list[int] = [int(pool[0])]
+    last_pos = pos[pool[0]]
+    last_quat = quat[pool[0]]
+    for i in pool[1:]:
+        moved = float(np.linalg.norm(pos[i] - last_pos))
+        # |dot| handles quaternion sign ambiguity: q and -q are the same rotation.
+        turned = abs(float(quat[i] @ last_quat))
+        if moved >= min_translation_m or turned < cos_limit:
+            kept.append(int(i))
+            last_pos = pos[i]
+            last_quat = quat[i]
+    if int(pool[-1]) not in kept:
+        kept.append(int(pool[-1]))
+    return np.asarray(kept, dtype=np.int64)
+
+
 def quat_to_rot(q: np.ndarray) -> np.ndarray:
     """Quaternion (x, y, z, w) -> 3x3 rotation matrix."""
     x, y, z, w = q

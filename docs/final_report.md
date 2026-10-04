@@ -151,6 +151,20 @@ the original bug, because a synthetic room is an empty box in which every
 non-horizontal plane genuinely is a wall; it caught the second one only because the
 doorway made the operator's path wider than the room.
 
+**Too many walls is not caused by duplicate frames.** The obvious explanation is
+redundancy: if the same frame counts many times, plane `support` measures how long
+the operator lingered rather than how well a surface was seen. Measured, there are
+**zero** byte-identical depth frames in any of the three archives — 0 of 1715, 0 of
+5251, 0 of 9745. What is true is the mechanism behind the intuition: the captures
+run at 60 Hz, consecutive frames are 8–9 mm apart, and 95–98% of them move the
+camera under 2 cm, so a 14.5 m path holds only ~470 independent viewpoints.
+`motion_dedup()` implements the obvious fix and it is **not** the default, because
+measured against the index-strided baseline it halves floor-plane error
+(`floor_only` 44.8 → 11.9 mm) while making wall selection worse
+(`with_ceiling` 8 → 9 walls, area 27.6 → 8.5 m² against a 75.7 m² trajectory
+footprint). Redundancy is real; it is not what produces the extra walls. See
+`CHECKPOINTS.md` and `scripts/compare_baselines.py`.
+
 **The photo tier is relative, not metric.** No frame in 238 contains a scale
 reference and no EXIF survives. Self-scaling from each wall's own floor-to-ceiling
 extent was tried and lands 30–75 % out on area. The plane fits are good — 5–49 mm
@@ -243,6 +257,8 @@ of frame. The check was wrong, not the model.
 | `scripts/diag_boundary_rule.py` | Per-wall keep/discard evidence for the boundary rule |
 | `scripts/diag_wall_planes.py` | Per-plane extent, normal and camera-distance diagnostics |
 | `scripts/diag_trajectory_extent.py` | How much floor the camera path actually covered |
+| `scripts/diag_duplicate_frames.py` | Duplicate/redundancy audit of the sample archives |
+| `scripts/compare_baselines.py` | Side-by-side comparison of two baseline JSONs |
 | `WALK_IN.md` | Ten-minute demo script for the walk-in |
 | `docs/compliance_matrix.md` | Requirement-by-requirement status |
 | `data/field_ground_truth.json` | Tape reference for three rooms |

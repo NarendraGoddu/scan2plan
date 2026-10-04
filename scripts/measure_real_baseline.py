@@ -26,6 +26,7 @@ trustworthy when they are finally compared to a surveyed room.
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import sys
@@ -37,7 +38,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from scan2plan.ingest import load_zip
+from scan2plan.ingest import load_zip, motion_dedup
 from scan2plan.plan import build_room_plan
 from scan2plan.segment import segment_capture
 
@@ -72,32 +73,39 @@ def _wall_offsets(plan) -> dict:
     return {k: float(np.mean(v)) for k, v in out.items()}
 
 
-def analyse(name: str, zip_name: str, frame_stride: int) -> dict:
+def analyse(name: str, zip_name: str, frame_stride: int, motion_m: float | None) -> dict:
     path = os.path.join(DATA, zip_name)
     t0 = time.time()
     cap = load_zip(path, frame_stride=1)
     loaded = cap.n_frames
     t_load = time.time() - t0
 
+    if motion_m:
+        sel = motion_dedup(cap.positions, cap.quats, min_translation_m=motion_m)
+        how = f"motion dedup > {motion_m * 100:.0f} cm"
+    else:
+        sel = np.arange(0, loaded, frame_stride)
+        how = f"frame_stride {frame_stride}"
+    view = cap.subset(sel)
+
     print("=" * 78)
     print(f"{name}  ({zip_name})")
-    print(f"  {loaded} frames in archive, load_stride 1, frame_stride {frame_stride} "
-          f"-> {len(range(0, loaded, frame_stride))} frames segmented")
-    print(f"  ({100.0 * len(range(0, loaded, frame_stride)) / loaded:.1f}% of the archive)")
+    print(f"  {loaded} frames in archive, {how} -> {len(sel)} frames segmented")
+    print(f"  ({100.0 * len(sel) / loaded:.1f}% of the archive)")
 
     rec: dict = {
         "archive": zip_name,
         "frames_in_archive": int(loaded),
-        "frame_stride": frame_stride,
+        "frame_stride": frame_stride if motion_m is None else None,
+        "motion_dedup_m": motion_m,
         "load_stride": 1,
-        "frames_segmented": int(len(range(0, loaded, frame_stride))),
+        "frames_segmented": int(len(sel)),
         "load_seconds": round(t_load, 1),
     }
 
-    full = segment_capture(cap, SCALE, frame_stride=frame_stride,
-                           point_stride=POINT_STRIDE)
+    full = segment_capture(view, SCALE, frame_stride=1, point_stride=POINT_STRIDE)
     up = full["up"]
-    plan = build_room_plan(full["planes"], up, cap.positions)
+    plan = build_room_plan(full["planes"], up, view.positions)
     floors, ceils = _horizontal(full["planes"], "floor"), _horizontal(full["planes"], "ceiling")
 
     print(f"  consensus planes: "
@@ -136,7 +144,9 @@ def analyse(name: str, zip_name: str, frame_stride: int) -> dict:
     rec["notes"] = list(plan.notes)
 
     # --- repeatability over disjoint halves -------------------------------
-    idx = list(range(0, loaded, frame_stride))
+    # Split the *selected* frames, so both halves are drawn from the same
+    # selection policy and stay disjoint.
+    idx = [int(i) for i in sel]
     mid = len(idx) // 2
     halves = {
         "first": [i for i in idx[:mid]],
@@ -187,19 +197,26 @@ def analyse(name: str, zip_name: str, frame_stride: int) -> dict:
 
 
 def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--motion-dedup", type=float, default=None, metavar="M",
+                    help="keep only frames that moved at least M metres since the "
+                         "last kept frame, instead of subsampling by index")
+    ap.add_argument("--out", default=None, help="output JSON (default runs/real_baseline.json)")
+    args = ap.parse_args()
+
     out = {}
     for name, zip_name, stride in ARCHIVES:
         if not os.path.isfile(os.path.join(DATA, zip_name)):
             print(f"skip {name}: {zip_name} not found under {DATA}")
             continue
         try:
-            out[name] = analyse(name, zip_name, stride)
+            out[name] = analyse(name, zip_name, stride, args.motion_dedup)
         except Exception as e:  # keep going; a partial baseline is still evidence
             print(f"  FAILED {name}: {type(e).__name__}: {e}")
             out[name] = {"archive": zip_name, "error": f"{type(e).__name__}: {e}"}
     runs = os.path.join(ROOT, "runs")
     os.makedirs(runs, exist_ok=True)
-    path = os.path.join(runs, "real_baseline.json")
+    path = args.out or os.path.join(runs, "real_baseline.json")
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(out, fh, indent=2)
     print(f"\nwrote {path}")

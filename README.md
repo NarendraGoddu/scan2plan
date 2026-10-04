@@ -143,6 +143,8 @@ detection remains open.
 | `examples/field_site/` | Generated real-site plans for the three captured rooms |
 | `scripts/measure_real_baseline.py` | Real-archive baseline and disjoint-halves repeatability |
 | `scripts/diag_boundary_rule.py` | Why a wall was kept or discarded, with the camera-path distances |
+| `scripts/diag_duplicate_frames.py` | Duplicate/redundancy audit of the sample archives |
+| `scripts/compare_baselines.py` | Side-by-side comparison of two baseline JSONs |
 | `scripts/diag_wall_planes.py` | Per-plane extent, normal and camera-distance diagnostics |
 | `scripts/diag_trajectory_extent.py` | How much floor the camera path actually covered |
 | `WALK_IN.md` | Ten-minute demo script: what to run, what to say, what to concede |

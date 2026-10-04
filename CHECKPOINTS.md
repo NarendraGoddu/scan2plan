@@ -275,3 +275,58 @@ trajectory footprint instead of far above it — but there is no ground truth fo
 those archives, so that is a sanity bound and not a result. The split-half
 disagreement is unchanged, which is the honest summary: **the real-data geometry
 is still unsolved.**
+
+## "There are duplicate images" — tested, and it is not that
+
+A reasonable challenge to the wall-selection work: if the same frame is counted
+many times, plane `support` stops meaning "how well seen" and starts meaning "how
+many times", so a surface the operator lingered on outranks the wall behind it.
+Duplicates would explain too many walls.
+
+**Measured (`scripts/diag_duplicate_frames.py`): there are no duplicates.**
+
+| Archive | Frames | Unique depth | Byte-identical repeats | Median pose step |
+|---|---|---|---|---|
+| `single_room` | 1715 | 1715 | **0** | 7.9 mm |
+| `floor_only` | 5251 | 5251 | **0** | 8.8 mm |
+| `with_ceiling` | 9745 | 9745 | **0** | 9.1 mm |
+
+Zero repeats, by depth hash and by pose. Every frame is distinct.
+
+What *is* true is the mechanism behind the intuition: the captures are recorded
+at 60 Hz, so consecutive frames are 8–9 mm apart and 95–98% of them move the
+camera under 2 cm. The operator's path is 14.5 m / 54.2 m / 99.8 m long, but there
+are only about 470 / 1300 / 2500 independent viewpoints in it. So `support` really
+does mostly measure dwell time.
+
+So the hypothesis was right about the *problem* and wrong about the *cause*. The
+fix for it was implemented anyway — `motion_dedup()` in `ingest.py`, keeping only
+frames that moved at least a threshold since the last kept frame, or rotated —
+and then measured against the stride baseline
+(`scripts/compare_baselines.py`):
+
+| Metric | index stride | motion dedup 5 cm | better? |
+|---|---|---|---|
+| `floor_only` floor rms | 44.8 mm | **11.9 mm** | motion |
+| `with_ceiling` floor rms | 160.0 mm | **73.4 mm** | motion |
+| `with_ceiling` split-half wall delta | 5529 mm | **2916 mm** | motion |
+| `single_room` walls | 9 | 9 | neither |
+| `floor_only` walls | **6** | 8 | stride |
+| `with_ceiling` walls | **8** | 9 | stride |
+| `with_ceiling` area | **27.60 m²** | 8.52 m² | stride |
+| `single_room` split-half walls | 2 matched | **none matched** | stride |
+
+Genuinely mixed, and **not adopted as the default.** It clearly helps the
+horizontal planes — fewer correlated near-identical frames to drag a plane fit
+around — and clearly hurts wall selection, where fewer frames mean more fragments
+(104 wall consensus planes on `with_ceiling` instead of a handful) and the
+outermost-pair rule then picks badly. `with_ceiling`'s area collapsing to 8.52 m²
+against a 75.7 m² trajectory footprint is decisive against it.
+
+Kept as `motion_dedup()` with `--motion-dedup` on the baseline driver, tested, and
+documented as a negative result, because "we tried it and it did not work" is worth
+more than a silent omission. The conclusion stands: **redundancy is not why there
+are too many walls.** The cause is still that real surfaces are not clean planes —
+clutter, partial views and fragmented fits — and the fix is still to solve for the
+minimal enclosing set of planes around the trajectory rather than filter a
+consensus set.
