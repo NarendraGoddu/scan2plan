@@ -215,5 +215,8 @@ of frame. The check was wrong, not the model.
 
 ## 10. Compliance
 
-See [`compliance_matrix.md`](compliance_matrix.md) — 18 Met, 1 Partial, 2 Prototype,
-9 Not met or Not done, each with a file that proves it.
+See [`compliance_matrix.md`](compliance_matrix.md) — 35 requirements: **24 Met,
+1 Partial, 2 Prototype, 8 Not met or Not done**, each with a file that proves it.
+Two of the 24 are qualified: the room-polygon requirement is Met on synthetic data
+and fails on real archives, and the reference benchmark is a substitute for a
+Magicplan comparison that was not performed. Strip those and it is 22 unqualified.

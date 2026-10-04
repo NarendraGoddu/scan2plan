@@ -82,18 +82,26 @@ Last updated 2026-10-04. All figures reproducible with the commands in
 | 8.2 | Runnable without setup | **Met** | `data/demo_room.zip` | 9.11 MB, exact truth, runs from a clean clone with zero setup. |
 | 8.3 | CLI | **Met** | `scan2plan-plan` | |
 | 8.4 | Optional heavy deps kept out of core | **Met** | `[depth]` extra | ONNX Runtime (~15 MB) instead of a multi-GB torch install; weights fetched by script, gitignored. |
-| 8.5 | Failure analysis | **Met** | commit log, this document | Six convention bugs found and documented, each with the symptom that revealed it. |
+| 8.5 | Failure analysis | **Met** | `docs/final_report.md` §6, `CHECKPOINTS.md`, git log | Six convention bugs documented, each with the measurement that revealed it. |
 
 ---
 
 ## Summary
 
+Counted from the tables above, by the status column:
+
 | Status | Count |
 |---|---|
-| Met | 18 |
+| Met | 24 |
 | Partial | 1 |
 | Prototype | 2 |
-| Not met / Not done | 9 |
+| Not met / Not done | 8 |
+| **Total requirements** | **35** |
+
+Two of the 24 are qualified and should not be read as clean passes: **2.4** (room
+polygon from walls) is Met on synthetic data and fails on real archives, and
+**6.2** (tape-reference benchmark) is a substitute for a comparison that was not
+performed. Strip those two and it is 22 unqualified.
 
 The two results that matter most, stated plainly:
 
