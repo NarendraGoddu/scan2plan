@@ -1,6 +1,15 @@
+"""Print each <div class="page"> separately and report how many PDF pages it needs.
+
+A section that spills onto a second page is a section that will be cut in half
+by the page break, which is how a field booklet ends up unreadable on site.
+
+    python scripts/check_page_fit.py [docs/capture_protocol.html]
+"""
+
 import re, subprocess, pathlib, time, sys
 
-html = open('docs/capture_protocol.html', encoding='utf-8').read()
+target = sys.argv[1] if len(sys.argv) > 1 else 'docs/capture_protocol.html'
+html = open(target, encoding='utf-8').read()
 head = html[:html.index('<body>') + 6]
 marker = '<div class="page">'
 parts = html.split(marker)

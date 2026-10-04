@@ -95,6 +95,7 @@ step.
 | `scripts/benchmark_synthetic.py` | Scores the pipeline against known rooms |
 | `scripts/verify_synth.py` | Generator self-checks, including a geometry round-trip |
 | `docs/capture_protocol.pdf` | Field capture protocol for collecting new data |
+| `docs/site_day.pdf` | Short on-site runbook: tape two rooms, then Magicplan, then damage |
 | `CHECKPOINTS.md` | Working log: what was tried, what broke, what it cost |
 
 ## How it works

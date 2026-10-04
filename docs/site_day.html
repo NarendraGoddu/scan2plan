@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Site Day - Tapes, Magicplan, Damage</title>
+<style>
+  @page { size: A4; margin: 10mm 10mm 11mm 10mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; font-size: 8.5pt; line-height: 1.24; color: #111; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  h1 { font-size: 15.5pt; margin: 0 0 1.4mm 0; letter-spacing: -0.3px; }
+  h2 { font-size: 10pt; margin: 0 0 2mm 0; padding: 1.2mm 2.2mm; background: #111; color: #fff; border-radius: 1.2mm; text-transform: uppercase; letter-spacing: 0.6px; }
+  h3 { font-size: 9pt; margin: 2.4mm 0 1mm 0; }
+  p { margin: 0 0 1.5mm 0; }
+  .sub { color: #444; font-size: 8.1pt; margin: 0 0 3mm 0; }
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+  table { width: 100%; border-collapse: collapse; margin: 0 0 2.4mm 0; }
+  th { background: #ececec; text-align: left; padding: 1mm 1.6mm; font-size: 7.6pt; text-transform: uppercase; letter-spacing: 0.3px; border-bottom: 0.4mm solid #111; }
+  td { padding: 0.8mm 1.5mm; border-bottom: 0.2mm solid #ccc; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .tot td { font-weight: 700; background: #f4f4f4; border-top: 0.4mm solid #111; }
+  .box { border: 0.4mm solid #111; border-radius: 1.2mm; padding: 1.7mm 2.2mm; margin: 0 0 2.1mm 0; }
+  .box.gray { background: #f4f4f4; }
+  .box.warn { border-width: 0.8mm; border-left: 3mm solid #111; background: #fafafa; }
+  .box h3 { margin-top: 0; }
+  ul, ol { margin: 0 0 1.6mm 0; padding-left: 4.6mm; }
+  li { margin-bottom: 0.7mm; }
+  .chk { list-style: none; padding-left: 0; }
+  .chk li { padding-left: 5.6mm; text-indent: -5.6mm; margin-bottom: 0.9mm; }
+  .chk li:before { content: "\2610\00a0\00a0"; font-size: 9.5pt; }
+  .pri { border: 0.4mm solid #111; border-radius: 1.2mm; padding: 0; margin-bottom: 2.4mm; overflow: hidden; }
+  .pri > .hdr { background: #111; color: #fff; padding: 1.3mm 2.4mm; font-weight: 700; font-size: 9pt; }
+  .pri > .hdr .t { float: right; font-weight: 400; font-size: 7.8pt; opacity: 0.85; }
+  .pri .body { padding: 1.7mm 2.2mm; }
+  .tag { display: inline-block; background: #111; color: #fff; padding: 0.2mm 1.3mm; border-radius: 0.8mm; font-size: 7pt; font-weight: 700; letter-spacing: 0.3px; vertical-align: 1px; }
+  .tag.b { background: #666; }
+  code { font-family: Consolas, monospace; font-size: 7.9pt; background: #eee; padding: 0 0.8mm; }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <h1>Site Day</h1>
+  <p class="sub">Tape first, then Magicplan, then damage photos. Print and carry this.
+  Priorities are already decided &mdash; do not improvise the order.</p>
+
+  <div class="box warn">
+    <h3>What today is actually for</h3>
+    <p style="margin-bottom:0">This phone has <b>no LiDAR</b>, so it cannot produce the depth
+    archives the pipeline consumes. Photos taken today <b>will not feed the reconstruction</b>.
+    What today produces is the <b>Magicplan head&#8209;to&#8209;head comparison</b>, made
+    defensible by tape-measuring the same rooms. That is the deliverable &mdash; do not
+    spend the day on the 8&#8209;pass photo protocol instead.</p>
+  </div>
+
+  <div class="box gray">
+    <h3>Do this in the first 10 minutes, indoors</h3>
+    <ul class="chk">
+      <li>Install Magicplan and confirm the free tier can <b>actually export a plan</b> (PDF, PNG or DXF)</li>
+      <li>If it cannot, <b>screenshot the limit message</b> &mdash; that is itself the honest Part 3 finding</li>
+      <li>Note the app version</li>
+      <li>Clear phone storage, battery 100%, airplane mode <b>on</b></li>
+    </ul>
+  </div>
+
+  <h2>The three priorities</h2>
+  <div class="pri">
+    <div class="hdr">1 &mdash; TAPE 2 ROOMS, THEN MAGICPLAN THEM<span class="t">the deliverable &middot; ~70 min</span></div>
+    <div class="body">
+      <p style="margin-bottom:1.2mm">Pick <b>living room</b> and <b>master bedroom</b>. If either
+      has <b>no POP / false ceiling</b>, prefer it &mdash; otherwise ceiling height is ambiguous by
+      10&ndash;20 cm and the comparison is worthless. Tape each room <b>before</b> scanning it,
+      then scan it. Full list on page 2.</p>
+    </div>
+  </div>
+  <div class="pri">
+    <div class="hdr">2 &mdash; DAMAGE PHOTOS<span class="t">only if damage exists &middot; 15 min</span></div>
+    <div class="body">
+      <p style="margin-bottom:0">Per item: <b>5 overlapping close shots</b> at 0.5&ndash;0.8 m in
+      focus filling the frame, <b>1 wide shot</b> for context, and <b>a tape in frame</b> for
+      scale. That last one is what makes it evidence rather than a snapshot.</p>
+    </div>
+  </div>
+  <div class="pri">
+    <div class="hdr">3 &mdash; 8-PASS PHOTO SURVEY<span class="t">low value today &middot; optional</span></div>
+    <div class="body">
+      <p style="margin-bottom:0">Only if you are well ahead. Nothing shipped consumes phone photos.
+      If you do it, follow the printed capture protocol exactly &mdash; and remember
+      <b>1.00 m and 1.80 m are distances from the wall</b>, the phone stays at <b>1.40 m</b>.</p>
+    </div>
+  </div>
+
+  <div class="box warn">
+    <h3>Skip entirely</h3>
+    <p style="margin-bottom:0">Bathrooms, balcony, utility &mdash; mirror&#8209;heavy and lowest value
+    per minute. Video (nothing consumes it yet). Chasing texture on blank painted walls.</p>
+  </div>
+</div>
+
+<div class="page">
+  <h1>Tape first</h1>
+  <p class="sub">These numbers are what Magicplan will be judged against. If they are wrong, the
+  comparison is worthless &mdash; so precision beats speed.</p>
+
+  <div class="box">
+    <h3>Technique &mdash; non-negotiable</h3>
+    <ul>
+      <li><b>Write the room name on the card before you measure.</b> Never measure an unnamed room.</li>
+      <li>Record <b>millimetres</b>, not centimetres, with leading zeros: <code>1245</code>, not <code>1 245</code>.</li>
+      <li><b>Pull the tape taut and straight.</b> A sagging tape reads short, a twisted one reads long. Sight along it.</li>
+      <li><b>Read at eye level</b>, directly above the tape, never at an angle.</li>
+      <li><b>Measure every wall length twice</b>, independently, and write both numbers. If they differ
+          by more than 5 mm, measure a third time and keep all three.</li>
+      <li>Photograph the card after every five readings, filling the frame, so each number stays
+          permanently linked to its room.</li>
+    </ul>
+  </div>
+
+  <h2>What to measure, per room</h2>
+  <table>
+    <tr><th>What</th><th class="num">Count</th><th>How</th></tr>
+    <tr><td><b>Wall lengths</b>, corner to corner at floor level</td><td class="num">4 &times; 2</td><td>Both readings written. Label which wall each belongs to: &ldquo;wall you face entering the door&rdquo;, etc.</td></tr>
+    <tr><td><b>Ceiling height</b>, floor to ceiling</td><td class="num">3</td><td>Different parts of the room. State whether you measured to the POP ceiling or the slab.</td></tr>
+    <tr><td><b>Floor diagonal</b>, corner to opposite corner</td><td class="num">1</td><td>Catches a room that is not actually rectangular &mdash; the most common silent error.</td></tr>
+    <tr><td><b>Door widths</b></td><td class="num">3 each</td><td><b>Top, middle and bottom</b> &mdash; openings are often trapezoidal and that variation is real information. Plus door height.</td></tr>
+    <tr><td><b>Window widths</b></td><td class="num">3 each</td><td>Top, middle, bottom. Plus sill height, floor to underside of sill.</td></tr>
+    <tr><td><b>Level changes</b></td><td class="num">any</td><td>Steps, thresholds, split levels &mdash; and their height.</td></tr>
+    <tr class="tot"><td><b>Total</b></td><td class="num"><b>~22</b></td><td><b>~30 min per room with two people</b></td></tr>
+  </table>
+
+  <div class="box gray">
+    <h3>Measurement card &mdash; one per room</h3>
+    <table>
+      <tr><td>Room name (written <b>before</b> measuring)</td><td>LIVING ROOM</td></tr>
+      <tr><td>Date</td><td>04 Oct</td></tr>
+      <tr><td>Wall lengths, both readings</td><td>4250 / 4248, 4180 / 4183, 3620 / 3618, 3640 / 3641 mm</td></tr>
+      <tr><td>Ceiling heights, 3 spots</td><td>2740, 2755, 2730 mm</td></tr>
+      <tr><td>Floor diagonal</td><td>5582 mm</td></tr>
+      <tr><td>Door widths (top/mid/bot) + height</td><td>905 / 900 / 902 mm, 2100 mm</td></tr>
+      <tr><td>Window widths (top/mid/bot) + sill</td><td>1450 / 1455 / 1448 mm, sill 900 mm</td></tr>
+      <tr><td>False / POP ceiling? which height measured?</td><td>NO POP &mdash; measured to slab</td></tr>
+      <tr><td>Mirrors and glass, located</td><td>1 mirror dining wall</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="page">
+  <h1>Then Magicplan, then evidence</h1>
+  <p class="sub">Scan the rooms you taped, and nothing else. A scan of an untaped room adds
+  nothing, because there is nothing to check it against.</p>
+
+  <h2>Magicplan, per room</h2>
+  <ul class="chk">
+    <li>Stand near the doorway first and take <b>one wide shot</b> for context</li>
+    <li>Walk the perimeter <b>slowly</b>, one continuous sweep &mdash; do not stop and restart</li>
+    <li>Sweep the <b>floor</b> and the <b>ceiling</b> separately, not only the walls</li>
+    <li>Walk <b>through every doorway</b> into the next space; the opening width is the tightest measurement in the whole assessment</li>
+    <li>Keep the phone <b>upright</b>, screen facing you, move your feet &mdash; do not wave it around</li>
+    <li>Do one room to completion before starting the next</li>
+  </ul>
+
+  <div class="box warn">
+    <h3>Export and evidence &mdash; do not skip</h3>
+    <ul style="margin-bottom:0">
+      <li><b>Export the plan</b> (PDF, PNG or DXF &mdash; whatever the tier allows) and save it
+          <b>off the phone</b>. Cloud-only is a real risk of losing the day&rsquo;s work.</li>
+      <li><b>Screenshot every export-limit message.</b> &ldquo;Free tier cannot export&rdquo; is a
+          legitimate, reportable Part 3 result and needs evidence.</li>
+      <li>Note the <b>handicap plainly</b>: this phone has no LiDAR, so Magicplan ran its
+          camera/SLAM path. State it wherever the numbers appear.</li>
+      <li>Magicplan is <b>another estimate</b>, never ground truth. The tape is the reference.</li>
+    </ul>
+  </div>
+
+  <div class="box">
+    <h3>Before you leave the flat &mdash; final 10 minutes</h3>
+    <ul class="chk">
+      <li>Both tape cards photographed, <b>room name legible</b></li>
+      <li>Every tape number written in millimetres, wall lengths measured twice</li>
+      <li>Magicplan exports for <b>both</b> rooms saved off the phone</li>
+      <li>Export-limit screenshots saved</li>
+      <li>Damage shots taken with a tape in frame, if any damage exists</li>
+      <li>Nothing sent through WhatsApp, Instagram or any compressor</li>
+      <li>Everything backed up to a second location</li>
+    </ul>
+  </div>
+
+  <div class="box gray">
+    <h3>Cutoffs</h3>
+    <p style="margin-bottom:1.2mm"><b>Tape both rooms before scanning either.</b> If you scan first
+    and run out of time, the measurements never exist and the whole session is wasted.</p>
+    <p style="margin-bottom:0">Absolute stop when the site closes. A room measured but not scanned
+    still yields a usable number; a room scanned but not measured yields nothing checkable.
+    A declared gap costs far less than a rushed, broken capture.</p>
+  </div>
+</div>
+
+</body>
+</html>
