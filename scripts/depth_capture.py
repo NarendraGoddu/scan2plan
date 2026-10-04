@@ -110,6 +110,11 @@ def main() -> None:
         "--limit", type=int, default=0, help="stop after N photos (debugging only)"
     )
     ap.add_argument(
+        "--skip-existing",
+        action="store_true",
+        help="skip media whose depth PNG is already written (resuming a partial run)",
+    )
+    ap.add_argument(
         "--no-save-depth", action="store_true", help="skip writing depth PNGs"
     )
     args = ap.parse_args()
@@ -121,10 +126,21 @@ def main() -> None:
     media = list_media(capture_dir)
     photos = [p for k, p in media if k == "photo"]
     videos = [p for k, p in media if k == "video"]
+
+    def depth_path_for(src: str, frame_index) -> str:
+        rel = os.path.relpath(src, capture_dir)
+        stem = os.path.splitext(rel)[0].replace(os.sep, "__")
+        name = f"{stem}.png" if frame_index is None else f"{stem}__f{frame_index:04d}.png"
+        return os.path.join(depth_dir, name)
+
+    if args.skip_existing:
+        before = len(photos)
+        photos = [p for p in photos if not os.path.isfile(depth_path_for(p, None))]
+        print(f"skip-existing: {before - len(photos)} photos already done")
     if args.limit:
         photos = photos[: args.limit]
     print(f"capture {capture_dir}")
-    print(f"  {len(photos)} photos, {len(videos)} videos")
+    print(f"  {len(photos)} photos to process, {len(videos)} videos")
 
     session = load_session(threads=args.threads)
     records: list[dict] = []
@@ -133,9 +149,8 @@ def main() -> None:
 
     def record(src: str, frame_index, depth, extra=None):
         rel = os.path.relpath(src, capture_dir)
-        stem = os.path.splitext(rel)[0].replace(os.sep, "__")
+        dst = depth_path_for(src, frame_index)
         if not args.no_save_depth:
-            name = f"{stem}.png" if frame_index is None else f"{stem}__f{frame_index:04d}.png"
             h, w = depth.shape[:2]
             if max(h, w) > DEPTH_SAVE_LONG_SIDE:
                 s = DEPTH_SAVE_LONG_SIDE / float(max(h, w))
@@ -144,7 +159,7 @@ def main() -> None:
                 )
             else:
                 small = depth
-            save_depth_png(small, os.path.join(depth_dir, name))
+            save_depth_png(small, dst)
         st = DepthStats.from_depth(rel, depth)
         rec = {
             "source": rel,
@@ -177,10 +192,15 @@ def main() -> None:
         if not frames:
             print(f"  NO FRAMES {os.path.basename(path)}")
             continue
+        done = 0
         for i, frame in enumerate(frames):
+            if args.skip_existing and os.path.isfile(depth_path_for(path, i)):
+                done += 1
+                continue
             depth = infer_depth(session, frame)
             record(path, i, depth, "video_frame")
-        print(f"  {os.path.basename(path)}: {len(frames)} frames")
+        print(f"  {os.path.basename(path)}: {len(frames) - done} frames"
+              + (f" ({done} already done)" if done else ""))
 
     out_json = os.path.join(args.out, "depth_capture.json")
     with open(out_json, "w", encoding="utf-8") as fh:
