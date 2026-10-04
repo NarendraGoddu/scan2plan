@@ -235,6 +235,71 @@ WALL_CROSS_CENTRAL_RATIO = 0.5
 # camera path to count as the room boundary in that direction.
 WALL_OUTSIDE_SLACK_M = 0.15
 
+# Two walls count as the same surface when their normals are within this many degrees
+# modulo 180 (a plane's normal sign is arbitrary) and their offsets agree to within
+# WALL_MATCH_OFFSET_TOL_M once that sign is respected.
+WALL_MATCH_ANGLE_TOL_DEG = 20.0
+WALL_MATCH_OFFSET_TOL_M = 0.35
+
+
+def plane_offset_residual(wa: Wall, wb: Wall) -> float:
+    """How far wall `wb` sits from the plane of wall `wa`, in metres.
+
+    A plane has no preferred normal sign: `n·p = d` and `-n·p = -d` are the same
+    surface. So raw offsets only compare correctly when the sign of the normal is
+    respected -- if the normals agree the offsets must agree, and if they are opposed
+    the offsets must be opposite. Getting this wrong is not subtle: comparing raw
+    offsets makes two walls 4.7 m apart look identical.
+    """
+    na = np.asarray(wa.normal, dtype=float)
+    nb = np.asarray(wb.normal, dtype=float)
+    na = na / (np.linalg.norm(na) + 1e-12)
+    nb = nb / (np.linalg.norm(nb) + 1e-12)
+    if float(na @ nb) >= 0.0:
+        return abs(float(wa.offset) - float(wb.offset))
+    return abs(float(wa.offset) + float(wb.offset))
+
+
+def match_walls(walls_a: list[Wall], walls_b: list[Wall],
+                angle_tol_deg: float = WALL_MATCH_ANGLE_TOL_DEG,
+                offset_tol_m: float = WALL_MATCH_OFFSET_TOL_M
+                ) -> tuple[list[tuple[int, int, float]], int, int]:
+    """Greedy nearest-neighbour matching of walls between two independent fits.
+
+    Returns `(pairs, unmatched_a, unmatched_b)` where each pair is
+    `(index_a, index_b, offset_residual_m)`.
+
+    This exists because the obvious approach -- bucket walls by normal direction
+    modulo 180 and average each bucket -- is wrong in a way that produces confident
+    nonsense. It folds every pair of opposite walls into one key, and then averages
+    *different* sets of walls into the same key in each fit, so the "disagreement"
+    being reported is between surfaces that were never the same wall.
+
+    Unmatched walls are returned rather than averaged away. If two fits disagree about
+    how many walls a room has, that disagreement is the result, not noise to be
+    smoothed over.
+    """
+    pairs: list[tuple[int, int, float]] = []
+    used_b: set[int] = set()
+    for i, wa in enumerate(walls_a):
+        na = np.asarray(wa.normal, dtype=float)
+        na = na / (np.linalg.norm(na) + 1e-12)
+        best: tuple[float, int, float] | None = None
+        for j, wb in enumerate(walls_b):
+            if j in used_b:
+                continue
+            nb = np.asarray(wb.normal, dtype=float)
+            nb = nb / (np.linalg.norm(nb) + 1e-12)
+            if abs(float(na @ nb)) < math.cos(math.radians(angle_tol_deg)):
+                continue
+            resid = plane_offset_residual(wa, wb)
+            if resid <= offset_tol_m and (best is None or resid < best[0]):
+                best = (resid, j, resid)
+        if best is not None:
+            used_b.add(best[1])
+            pairs.append((i, best[1], best[2]))
+    return pairs, len(walls_a) - len(pairs), len(walls_b) - len(pairs)
+
 
 def crossed_by_path(walls: list[Wall], cam_ab: np.ndarray) -> dict[int, bool]:
     """Which walls the camera path straddles, i.e. which stand in the room.

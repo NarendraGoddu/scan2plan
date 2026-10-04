@@ -268,13 +268,14 @@ because dropping the group would silently delete a room dimension.
 | `single_room` reported area | 19.27 m² | 12.08 m² |
 | `floor_only` reported area | 85.11 m² | 46.08 m² |
 | `with_ceiling` reported area | 93.54 m² | 27.60 m² |
-| Split-half wall disagreement | 6071 / 5529 mm | 6071 / 5529 mm (unchanged) |
+| Split-half walls matched | reported 6071 / 5529 mm | **1 of 8 / 1 of 9** |
 
 The real-data areas moved in the right direction — they now sit below the camera
 trajectory footprint instead of far above it — but there is no ground truth for
 those archives, so that is a sanity bound and not a result. The split-half
-disagreement is unchanged, which is the honest summary: **the real-data geometry
-is still unsolved.**
+disagreement line was itself a bug (see below), so its "unchanged" verdict was
+meaningless; corrected, the two halves barely agree on which walls exist. The honest
+summary is unchanged in substance: **the real-data geometry is still unsolved.**
 
 ## "There are duplicate images" — tested, and it is not that
 
@@ -309,12 +310,17 @@ and then measured against the stride baseline
 |---|---|---|---|
 | `floor_only` floor rms | 44.8 mm | **11.9 mm** | motion |
 | `with_ceiling` floor rms | 160.0 mm | **73.4 mm** | motion |
-| `with_ceiling` split-half wall delta | 5529 mm | **2916 mm** | motion |
 | `single_room` walls | 9 | 9 | neither |
 | `floor_only` walls | **6** | 8 | stride |
 | `with_ceiling` walls | **8** | 9 | stride |
 | `with_ceiling` area | **27.60 m²** | 8.52 m² | stride |
-| `single_room` split-half walls | 2 matched | **none matched** | stride |
+
+The two split-half *wall* rows this table used to contain are gone, because both were
+computed by the direction-bucket metric that turned out to be broken — they compared
+averages of differently-chosen sets of walls, not walls to walls. They have not been
+replaced with numbers from the corrected matcher, because that would mean re-running the
+whole stride-vs-motion comparison on a metric whose behaviour changed; the honest state
+is "not measured", not a new figure.
 
 Genuinely mixed, and **not adopted as the default.** It clearly helps the
 horizontal planes — fewer correlated near-identical frames to drag a plane fit
@@ -667,3 +673,59 @@ in compliance rows 4.1 and 4.2, Partial in 4.3 (taxonomy and generator exist and
 exercised, but unvalidated in practice because the detector does not work).
 
 Summary counts therefore moved 24 Met / 2 Partial / 1 Prototype / 8 Not met-or-Not done.
+
+## The split-half wall metric was measuring nothing (third bug class)
+
+`6071 mm` and `5529 mm` of split-half "wall disagreement" were quoted in this file, in
+`docs/final_report.md`, in `docs/compliance_matrix.md` and in `WALK_IN.md`. All four
+quotations were artefacts of the measuring code. Nothing in the pipeline was ever 6 m
+wrong in the way those numbers implied.
+
+`_wall_offsets` bucketed walls by `round(degrees(atan2(n1, n0))) % 180 // 15 * 15` and
+averaged each bucket. Two independent errors compound:
+
+- **A plane's normal sign is arbitrary.** `n.p = d` and `-n.p = -d` are the same
+  surface, so bucketing modulo 180 is right for comparing *orientations* and wrong for
+  comparing *offsets*, which are signed and flip with the normal. On `single_room` one
+  bucket held offsets -1.108 m and +3.569 m - 4.677 m apart - and was reported as
+  +1.230 m.
+- **Averaging distinct walls into one number**, so each half averaged a *different*
+  subset into the same key. The reported delta compared `{A, B}` against `{C}`, and key
+  15.0 matched a wall at -0.978 m in the first half against one at +2.922 m in the
+  second: two entirely different surfaces, reported as 3899.5 mm of disagreement.
+
+The halves shared only one key on that archive, so the whole wall-offset figure rested
+on that single bogus pairing.
+
+**Corrected, the result is worse rather than better**, which is the useful part:
+
+| Archive | Half walls (1st/2nd) | Pairs the halves agree on |
+|---|---|---|
+| `single_room` | 8 / 6 | 1, agreeing to 16.6 mm |
+| `floor_only` | 6 / 5 | none at all |
+| `with_ceiling` | 7 / 4 | 1, disagreeing by 321.0 mm |
+
+So the finding is not that walls disagree by six metres. It is that the halves do not
+agree on *which walls are in the room*. The old number hid that behind an averaging
+artefact while looking, to a casual reader, like a strong result.
+
+Moved to `scan2plan.plan.match_walls` (with `plane_offset_residual`) rather than left in
+the script, because a metric that can silently report nonsense is exactly the thing that
+needs a test. Six tests in `tests/test_room_boundary.py` pin the sign-aware residual, the
+opposite-wall case, one-to-one matching, and the subset case where a wall missing from
+one fit is reported unmatched instead of averaged away.
+
+**The process lesson, which is the part I would want a reviewer to take.** Three bug
+classes now, and this is the third distinct one: wrong data (`slant range stored where
+axial depth was assumed`), wrong rule (the boundary rule that discarded walls at
+doorways), and wrong *instrument*. The third is the one I am least able to catch by
+inspection, because a broken metric still produces a confident number. Six metres of
+error did not look like a bug; it looked like a damning result, and damning is exactly
+the quality that gets a number pasted into four documents without a second look. The
+tell was available the whole time and I did not use it: a metric reporting a 6 m error
+on a 6 m room should have been checked against the room's own dimensions first.
+
+Also removed, rather than replaced: the two split-half wall rows in the stride-vs-motion
+table, since they were computed by this metric. Leaving them would have meant quoting
+numbers whose meaning changed; replacing them would have meant re-running the whole
+comparison on a metric that just changed behaviour. "Not measured" is the honest state.

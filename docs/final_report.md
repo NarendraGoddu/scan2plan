@@ -136,20 +136,41 @@ extent. All five rooms recover 4/4 walls again.
 Real archives after the fix, against the trajectory footprint as a sanity bound —
 these archives ship with no ground truth, so this is not an accuracy measurement:
 
-| Archive | Walls | Vertices | Reported area | Trajectory-implied area | Split-half wall disagreement |
-|---|---|---|---|---|---|
-| `single_room` | 9 | 8 | 12.08 m² | 17.3 m² | **6071 mm** |
-| `floor_only` | 6 | 5 | 46.08 m² | 73.8 m² | n/a |
-| `with_ceiling` | 8 | 5 | 27.60 m² | 75.7 m² | **5529 mm** |
+| Archive | Walls | Vertices | Reported area | Trajectory-implied area | Half walls (1st/2nd) | Pairs matched |
+|---|---|---|---|---|---|---|
+| `single_room` | 9 | 8 | 12.08 m² | 17.3 m² | 8 / 6 | 1, residual 16.6 mm |
+| `floor_only` | 6 | 5 | 46.08 m² | 73.8 m² | 6 / 5 | 0 |
+| `with_ceiling` | 8 | 5 | 27.60 m² | 75.7 m² | 7 / 4 | 1, residual 321.0 mm |
 
 The areas came down (from 19.27 / 85.11 / 93.54 m²) and now sit below the
 trajectory footprint rather than far above it, which is the right direction but is
 not evidence of correctness. The wall counts are still wrong — 6 to 9 where a
-rectangle has 4 — and splitting an archive in half still yields walls that disagree
-by six metres. **This is unsolved.** The synthetic benchmark could never have caught
-the original bug, because a synthetic room is an empty box in which every
-non-horizontal plane genuinely is a wall; it caught the second one only because the
-doorway made the operator's path wider than the room.
+rectangle has 4.
+
+**The split-half wall metric was itself broken, and fixing it made the result worse,
+not better.** It bucketed walls by normal direction *modulo 180°* and averaged each
+bucket. A plane's normal sign is arbitrary, so that fold merged every pair of
+opposite walls: on `single_room` one bucket held offsets −1.108 m and +3.569 m, 4.7 m
+apart, averaged into +1.230 m. Each half then averaged a *different* set of walls into
+the same key, so the reported "disagreement" compared surfaces that were never the same
+wall. The old figures — **6071 mm** and **5529 mm** — were artefacts of that averaging
+and should never have been quoted.
+
+Replaced with sign-aware greedy plane matching (normals compared modulo 180°, offsets
+required to agree *with the sign respected*, 0.35 m match tolerance). The honest result
+is in the table: the two halves agree on **one wall** out of eight and six on
+`single_room`, on **one** out of seven and four on `with_ceiling`, and on **none at
+all** across six and five on `floor_only`. Where a pair does match, it agrees to
+16.6 mm and 321.0 mm respectively. So the finding is not that walls disagree by six
+metres — it is that the two halves do not agree on *which walls exist*. That is a more
+fundamental failure, and the earlier number was hiding it.
+
+**This is unsolved.** The synthetic benchmark could never have caught the original bug,
+because a synthetic room is an empty box in which every non-horizontal plane genuinely
+is a wall; it caught the second one only because the doorway made the operator's path
+wider than the room. A metric bug is a third category, and it is the one most likely to
+be missed, because a metric that reports metres of error still *looks* like a
+measurement rather than like a defect.
 
 **Too many walls is not caused by duplicate frames.** The obvious explanation is
 redundancy: if the same frame counts many times, plane `support` measures how long

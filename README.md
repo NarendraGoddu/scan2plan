@@ -45,7 +45,7 @@ matters against a tight gate.
 ```
 pip install -e ".[analysis,depth,dev]"    # core + tests + monocular depth + linter
 python scripts/fetch_depth_model.py        # 99 MB ONNX weights, once
-python -m pytest tests -q                  # 142 tests, ~85 s
+python -m pytest tests -q                  # 148 tests, ~90 s
 python -m ruff check .                     # lint gate, <1 s, currently clean
 ```
 
@@ -57,7 +57,7 @@ torch wheel would be multi-gigabyte. See the trade-offs below.
 **Static type checking is not configured.** `mypy` installs but cannot execute on this
 machine — Windows Application Control blocks its compiled DLL at import
 (`ImportError: DLL load failed while importing internal`). Rather than route around a
-security policy, the gate is `ruff` plus 142 runtime tests, and the annotations in
+security policy, the gate is `ruff` plus 148 runtime tests, and the annotations in
 `src/scan2plan` are unverified by a type checker.
 
 Nothing above is needed for the automatic pipeline — `data/demo_room.zip` runs with

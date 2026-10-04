@@ -121,15 +121,33 @@ ground truth, so there is no "area error" column, and I will not invent one. The
 evidence is self-consistency instead — split each archive into two disjoint
 halves and ask whether the pipeline agrees with itself:
 
-| Archive | Walls, 1st half | Walls, 2nd half | Worst wall-offset disagreement |
+| Archive | Walls, 1st half | Walls, 2nd half | Wall pairs the two halves agree on |
 |---|---|---|---|
-| `single_room` | 6 | 4 | **6071 mm** |
-| `floor_only` | 4 | 4 | too few matched to compare |
-| `with_ceiling` | 5 | 3 | **5529 mm** |
+| `single_room` | 8 | 6 | **1 of 8**, and it agrees to 17 mm |
+| `floor_only` | 6 | 5 | **none at all** |
+| `with_ceiling` | 7 | 4 | **1 of 7**, and it disagrees by 321 mm |
 
 The same archive, cut in half, yields a different room — walls appearing and
-disappearing, and offsets disagreeing by **six metres**. No ground truth is needed
-to call that a failure; the pipeline contradicts itself on identical input.
+disappearing, and in most cases no wall at all that both halves agree is even the same
+wall. No ground truth is needed to call that a failure; the pipeline contradicts itself
+on identical input.
+
+A note on how I first measured this, because the wrong version was more dramatic and
+more wrong. The first version of this table reported offsets disagreeing by **six
+metres**, and I quoted that number in the report and the compliance matrix. It was an
+artefact of the measuring code, not a property of the pipeline: it bucketed walls by
+normal direction *modulo 180°* and averaged each bucket. A plane's normal sign is
+arbitrary, so that fold merged every pair of opposite walls — one bucket held offsets
+−1.108 m and +3.569 m, 4.7 m apart, averaged into +1.230 m — and then each half averaged
+a *different* set of walls into the same key. The real numbers are in the table above,
+and they are worse news than six metres: rather than walls that disagree by six metres,
+the halves mostly disagree about **which walls are in the room**.
+
+That is worth stating plainly as a process point, because it is the failure mode I am
+least likely to catch by looking. A metric that reports metres of error still looks like
+a measurement. It did not look wrong; it looked alarming, and alarming got it pasted into
+three documents. The corrected metric reports small residuals *and* a near-total failure
+to pair, which is the accurate picture.
 
 Then the root cause, which is the actual engineering content:
 

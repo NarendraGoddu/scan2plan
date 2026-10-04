@@ -39,7 +39,7 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
 from scan2plan.ingest import load_zip, motion_dedup
-from scan2plan.plan import build_room_plan
+from scan2plan.plan import build_room_plan, match_walls
 from scan2plan.segment import segment_capture
 
 DATA = os.environ.get(
@@ -64,13 +64,13 @@ def _height(p, up) -> float:
 
 
 def _wall_offsets(plan) -> dict:
-    """Wall offsets keyed by rounded normal, so two fits can be compared."""
-    out = {}
-    for w in plan.walls:
-        ang = round(float(np.degrees(np.arctan2(w.normal[1], w.normal[0]))), 0)
-        key = ((ang % 180) // 15) * 15
-        out.setdefault(key, []).append(float(w.offset))
-    return {k: float(np.mean(v)) for k, v in out.items()}
+    """Kept for the JSON record: walls keyed by signed offset, not by direction.
+
+    Direction is no longer part of the key. Averaging distinct walls into one number
+    is what made the old metric meaningless.
+    """
+    return {round(float(w.offset), 3): float(np.linalg.norm(w.normal))
+            for w in plan.walls}
 
 
 def analyse(name: str, zip_name: str, frame_stride: int, motion_m: float | None,
@@ -168,11 +168,12 @@ def analyse(name: str, zip_name: str, frame_stride: int, motion_m: float | None,
             "frames": len(frames),
             "floor_height_m": _height(fl[0], r["up"]) if fl else None,
             "ceiling_height_m": _height(ce[0], r["up"]) if ce else None,
+            "walls": p.walls,
             "wall_offsets": _wall_offsets(p),
         }
 
-    rep: dict = {"n_walls_first": len(fits["first"]["wall_offsets"]),
-                 "n_walls_second": len(fits["second"]["wall_offsets"])}
+    rep: dict = {"n_walls_first": len(fits["first"]["walls"]),
+                 "n_walls_second": len(fits["second"]["walls"])}
     print(f"  repeatability over disjoint halves "
           f"({fits['first']['frames']} vs {fits['second']['frames']} frames):")
     for key, label in (("floor_height_m", "floor height"),
@@ -182,16 +183,26 @@ def analyse(name: str, zip_name: str, frame_stride: int, motion_m: float | None,
             d = abs(a - b) * 1000
             rep[f"{key}_delta_mm"] = round(d, 1)
             print(f"    {label:16s} {d:6.1f} mm  (gate 10 mm)")
-    common = set(fits["first"]["wall_offsets"]) & set(fits["second"]["wall_offsets"])
-    if common:
-        deltas = [abs(fits["first"]["wall_offsets"][k] - fits["second"]["wall_offsets"][k]) * 1000
-                  for k in common]
-        rep["wall_offset_delta_mm"] = {"n": len(deltas), "max": round(max(deltas), 1),
-                                       "mean": round(float(np.mean(deltas)), 1)}
+    pairs, un_a, un_b = match_walls(fits["first"]["walls"], fits["second"]["walls"])
+    rep["walls_matched"] = len(pairs)
+    rep["walls_unmatched_first"] = un_a
+    rep["walls_unmatched_second"] = un_b
+    if pairs:
+        deltas = [r * 1000 for _, _, r in pairs]
+        rep["wall_offset_delta_mm"] = {
+            "n": len(deltas), "max": round(max(deltas), 1),
+            "mean": round(float(np.mean(deltas)), 1),
+        }
         print(f"    wall offsets     {max(deltas):6.1f} mm worst of {len(deltas)} matched "
               f"(gate 10 mm or 0.5% of wall)")
+        # An unmatched wall is a disagreement about the room, not a rounding error,
+        # so it is reported rather than averaged away.
+        print(f"                     {un_a} / {un_b} walls unmatched "
+              f"(first / second) at 0.35 m match tolerance")
     else:
-        print("    wall offsets     no wall direction matched across halves")
+        rep["wall_offset_delta_mm"] = None
+        print("    wall offsets     no wall plane matched across halves "
+              f"({un_a} / {un_b} unmatched)")
     rec["repeatability"] = rep
     rec["seconds"] = round(time.time() - t0, 1)
     print(f"  total {rec['seconds']}s")
