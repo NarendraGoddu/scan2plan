@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scan2plan"
+version = "0.1.0"
+description = "Dimensioned floor plans and damage evidence from depth captures"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+# Deliberately small. A multi-gigabyte monocular depth model or a COLMAP/SfM
+# stack would break installation on a clean machine, which is a property this
+# project is assessed on. See README "Limitations and trade-offs".
+dependencies = [
+    "numpy>=1.24",
+    "pillow>=10.0",
+    "scipy>=1.11",
+]
+
+[project.optional-dependencies]
+# Everything needed to reproduce the benchmark and the test suite. Kept out of
+# the core install so `pip install scan2plan` stays light.
+analysis = [
+    "matplotlib>=3.7",
+    "pytest>=7.4",
+]
+
+[project.scripts]
+scan2plan-plan = "scan2plan.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
