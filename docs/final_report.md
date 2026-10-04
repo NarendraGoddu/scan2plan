@@ -38,6 +38,10 @@ python scripts/depth_capture.py --skip-existing
 `data/demo_room.zip` is committed, so the first command works from a fresh clone
 with no setup and no network.
 
+The generated real-site outputs are also committed at `examples/field_site/` for
+review without running anything: `master_bedroom.svg`, `second_bedroom.svg`,
+`main_hall.svg`, their JSON documents, and an `index.html` linking them.
+
 ## 3. Results that hold up
 
 ### 3.1 Synthetic benchmark — verified against exact truth
@@ -209,6 +213,7 @@ of frame. The check was wrong, not the model.
 | `scripts/measure_real_baseline.py` | Real-archive baseline and repeatability |
 | `scripts/report_field_capture.py` | Tape-assisted real-site plans |
 | `scripts/measure_walls_from_depth.py` | Per-wall measurement from photos |
+| `examples/field_site/` | Committed generated real-site SVG/JSON outputs |
 | `docs/compliance_matrix.md` | Requirement-by-requirement status |
 | `data/field_ground_truth.json` | Tape reference for three rooms |
 | `data/demo_room.zip` | Runnable demo with exact truth |

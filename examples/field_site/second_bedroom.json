@@ -1,0 +1,283 @@
+{
+  "schema": "scan2plan/field-tape/v1",
+  "generated_utc": "2026-10-04T11:07:31Z",
+  "geometry_source": "steel tape measurement (5 m tape, corner to corner at floor level between masking-tape corner marks)",
+  "geometry_is_measured_not_reconstructed": true,
+  "input": {
+    "scan_id": "field-second_bedroom",
+    "room_id": "second_bedroom",
+    "captured": "2026-10-04",
+    "media": {
+      "photos_labelled": 33,
+      "videos": 0,
+      "exif_present": false,
+      "gps_exif_present": false,
+      "scale_reference_in_frame": false
+    }
+  },
+  "room": {
+    "vertices_world": [
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        4.37,
+        0.0,
+        0.0
+      ],
+      [
+        4.37,
+        2.79,
+        0.0
+      ],
+      [
+        0.0,
+        2.79,
+        0.0
+      ]
+    ],
+    "vertex_labels": [
+      "V0",
+      "V1",
+      "V2",
+      "V3"
+    ],
+    "walls": [
+      {
+        "index": 1,
+        "length_m": 4.37,
+        "from_vertex": "V0",
+        "to_vertex": "V1",
+        "outward_normal_ab": [
+          0.0,
+          -1.0
+        ],
+        "evidence_photos": [
+          "2nd_bed_room\\2_room_wall_1 (1).jpg",
+          "2nd_bed_room\\2_room_wall_1 (2).jpg",
+          "2nd_bed_room\\2_room_wall_1 (3).jpg"
+        ],
+        "n_evidence_photos": 3
+      },
+      {
+        "index": 2,
+        "length_m": 2.79,
+        "from_vertex": "V1",
+        "to_vertex": "V2",
+        "outward_normal_ab": [
+          1.0,
+          -0.0
+        ],
+        "evidence_photos": [
+          "2nd_bed_room\\2_room_wall_2 (1).jpg",
+          "2nd_bed_room\\2_room_wall_2 (2).jpg",
+          "2nd_bed_room\\2_room_wall_2 (3).jpg",
+          "2nd_bed_room\\2_room_wall_2 (4).jpg"
+        ],
+        "n_evidence_photos": 4
+      },
+      {
+        "index": 3,
+        "length_m": 4.37,
+        "from_vertex": "V2",
+        "to_vertex": "V3",
+        "outward_normal_ab": [
+          0.0,
+          1.0
+        ],
+        "evidence_photos": [
+          "2nd_bed_room\\2_room_wall_3 (1).jpg",
+          "2nd_bed_room\\2_room_wall_3 (2).jpg",
+          "2nd_bed_room\\2_room_wall_3 (3).jpg",
+          "2nd_bed_room\\2_room_wall_3 (4).jpg"
+        ],
+        "n_evidence_photos": 4
+      },
+      {
+        "index": 4,
+        "length_m": 2.79,
+        "from_vertex": "V3",
+        "to_vertex": "V0",
+        "outward_normal_ab": [
+          -1.0,
+          -0.0
+        ],
+        "evidence_photos": [
+          "2nd_bed_room\\2_room_wall_4 (1).jpg",
+          "2nd_bed_room\\2_room_wall_4 (2).jpg",
+          "2nd_bed_room\\2_room_wall_4 (3).jpg",
+          "2nd_bed_room\\2_room_wall_4 (4).jpg",
+          "2nd_bed_room\\2_room_wall_4 (5).jpg",
+          "2nd_bed_room\\2_room_wall_4 (6).jpg"
+        ],
+        "n_evidence_photos": 6
+      }
+    ]
+  },
+  "coordinate_frame": {
+    "basis_a_world": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "basis_b_world": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "up_world": [
+      0.0,
+      0.0,
+      1.0
+    ],
+    "origin": "room corner V0",
+    "note": "Defined by the tape layout, not by a sensor frame, so there is no compass direction and no north arrow is drawn."
+  },
+  "quality": {
+    "floor_area_m2": 12.1923,
+    "perimeter_m": 14.32,
+    "edge_lengths_m": [
+      4.37,
+      2.79,
+      4.37,
+      2.79
+    ],
+    "ceiling_height_m": 2.57,
+    "room_aspect": 1.5663
+  },
+  "uncertainty": {
+    "wall_position_1sigma_m": [
+      0.005,
+      0.005,
+      0.005,
+      0.005
+    ],
+    "source": "tape reading uncertainty, not a pipeline residual",
+    "floor_area_1sigma_m2": 0.0716
+  },
+  "openings": [
+    {
+      "kind": "door",
+      "width_m": 0.8,
+      "height_m": 2.0
+    },
+    {
+      "kind": "window",
+      "width_m": 1.22,
+      "height_m": 1.22
+    }
+  ],
+  "opening_evidence": {
+    "door_photos": [
+      "2nd_bed_room\\2_room_door (1).jpg",
+      "2nd_bed_room\\2_room_door (2).jpg"
+    ],
+    "note": "Opening sizes are tape readings. Photographs are attached as evidence but were not used to derive the dimensions."
+  },
+  "damage": [
+    {
+      "room_id": "second_bedroom",
+      "wall_index": 1,
+      "crack_photos": [
+        {
+          "file": "wall_1_crack (1).jpg",
+          "sigma_m": 0.09607,
+          "frac_rough": 0.00996,
+          "max_r_m": 2.5662
+        },
+        {
+          "file": "wall_1_crack (2).jpg",
+          "sigma_m": 0.07824,
+          "frac_rough": 0.00961,
+          "max_r_m": 1.7397
+        }
+      ],
+      "control_photos": [
+        {
+          "file": "2_room_wall_1 (1).jpg",
+          "sigma_m": 0.21832,
+          "frac_rough": 0.01272,
+          "max_r_m": 3.6479
+        },
+        {
+          "file": "2_room_wall_1 (2).jpg",
+          "sigma_m": 0.1613,
+          "frac_rough": 0.03691,
+          "max_r_m": 2.3951
+        },
+        {
+          "file": "2_room_wall_1 (3).jpg",
+          "sigma_m": 0.18623,
+          "frac_rough": 0.02821,
+          "max_r_m": 2.3373
+        }
+      ],
+      "crack_sigma_m": 0.08715500000000001,
+      "control_sigma_m": 0.18623,
+      "roughness_ratio": 0.468,
+      "verdict": "no measurable roughness difference; the crack is below this method's resolution with only two frames"
+    }
+  ],
+  "diagonal_consistency": {
+    "measured_m": 5.06,
+    "predicted_from_sides_m": 5.1847,
+    "difference_mm": -124.7
+  },
+  "notes": [
+    "Wall numbers follow the photographer's filenames. That they run clockwise around the room was never confirmed, so wall 1 may not be physically adjacent to wall 2 in the drawing. Lengths are unaffected."
+  ],
+  "confidence": {
+    "dimensional": {
+      "score_pct": 50.0,
+      "met": 1,
+      "total": 2,
+      "conditions": [
+        {
+          "condition": "dimensions from steel tape",
+          "met": true,
+          "detail": "+/-5 mm on each side"
+        },
+        {
+          "condition": "diagonal self-consistent (-125 mm)",
+          "met": false,
+          "detail": "measured vs predicted from sides"
+        }
+      ]
+    },
+    "photographic_corroboration": {
+      "score_pct": 60.0,
+      "met": 3,
+      "total": 5,
+      "conditions": [
+        {
+          "condition": "every wall has a photograph (4/4)",
+          "met": true,
+          "detail": "wall photos labelled in the filename"
+        },
+        {
+          "condition": "ceiling photographed",
+          "met": true,
+          "detail": "enables an independent height check"
+        },
+        {
+          "condition": "door photographed",
+          "met": true,
+          "detail": "enables an opening cross-check"
+        },
+        {
+          "condition": "no scale reference in any frame",
+          "met": false,
+          "detail": "photo tier cannot be metric on its own"
+        },
+        {
+          "condition": "wall numbering order unconfirmed",
+          "met": false,
+          "detail": "affects adjacency, not lengths"
+        }
+      ]
+    },
+    "overall_note": "Dimensional confidence is high and photographic corroboration is low. These are not averaged: the plan's dimensions come from the tape, and the photographs corroborate surfaces without having been measured against them."
+  }
+}

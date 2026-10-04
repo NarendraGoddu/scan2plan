@@ -111,6 +111,9 @@ steel tape in `data/field_ground_truth.json`, and every document it writes carri
 evidence per wall and are not used to derive any dimension. Do not read those
 plans as reconstruction results.
 
+A committed copy of the generated site package is under `examples/field_site/`,
+including one SVG and one JSON per room plus `index.html`.
+
 Filename labels (`m_wall_2.5.jpg`, `2_room_wall_1 (3).jpg`, `wall_1_crack (1).jpg`)
 are used to *select and evaluate* evidence. They are not a production input: a
 client's photos will be named `IMG_20261004_103746.jpg`, and pixel-only wall
@@ -137,6 +140,7 @@ detection remains open.
 | `scripts/measure_walls_from_depth.py` | Per-wall measurement from wall-labelled photos |
 | `scripts/analyse_openings_and_damage.py` | Openings and damage-roughness stages |
 | `scripts/report_field_capture.py` | Tape-assisted plans for a real site |
+| `examples/field_site/` | Generated real-site plans for the three captured rooms |
 | `scripts/measure_real_baseline.py` | Real-archive baseline and disjoint-halves repeatability |
 | `docs/final_report.md` | **Start here** — results, negative results, next steps |
 | `docs/compliance_matrix.md` | Requirement-by-requirement status with evidence |

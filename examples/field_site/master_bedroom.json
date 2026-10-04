@@ -1,0 +1,240 @@
+{
+  "schema": "scan2plan/field-tape/v1",
+  "generated_utc": "2026-10-04T11:07:31Z",
+  "geometry_source": "steel tape measurement (5 m tape, corner to corner at floor level between masking-tape corner marks)",
+  "geometry_is_measured_not_reconstructed": true,
+  "input": {
+    "scan_id": "field-master_bedroom",
+    "room_id": "master_bedroom",
+    "captured": "2026-10-04",
+    "media": {
+      "photos_labelled": 26,
+      "videos": 0,
+      "exif_present": false,
+      "gps_exif_present": false,
+      "scale_reference_in_frame": false
+    }
+  },
+  "room": {
+    "vertices_world": [
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        3.72,
+        0.0,
+        0.0
+      ],
+      [
+        3.72,
+        3.28,
+        0.0
+      ],
+      [
+        0.0,
+        3.28,
+        0.0
+      ]
+    ],
+    "vertex_labels": [
+      "V0",
+      "V1",
+      "V2",
+      "V3"
+    ],
+    "walls": [
+      {
+        "index": 1,
+        "length_m": 3.72,
+        "from_vertex": "V0",
+        "to_vertex": "V1",
+        "outward_normal_ab": [
+          0.0,
+          -1.0
+        ],
+        "evidence_photos": [
+          "master_bed_room\\m_wall_1.1.jpg",
+          "master_bed_room\\m_wall_1.2.jpg",
+          "master_bed_room\\m_wall_1.3.jpg",
+          "master_bed_room\\m_wall_1.4.jpg"
+        ],
+        "n_evidence_photos": 4
+      },
+      {
+        "index": 2,
+        "length_m": 3.28,
+        "from_vertex": "V1",
+        "to_vertex": "V2",
+        "outward_normal_ab": [
+          1.0,
+          -0.0
+        ],
+        "evidence_photos": [
+          "master_bed_room\\m_wall_2.1.jpg",
+          "master_bed_room\\m_wall_2.2.jpg",
+          "master_bed_room\\m_wall_2.3.jpg",
+          "master_bed_room\\m_wall_2.4.jpg",
+          "master_bed_room\\m_wall_2.5.jpg"
+        ],
+        "n_evidence_photos": 5
+      },
+      {
+        "index": 3,
+        "length_m": 3.72,
+        "from_vertex": "V2",
+        "to_vertex": "V3",
+        "outward_normal_ab": [
+          0.0,
+          1.0
+        ],
+        "evidence_photos": [
+          "master_bed_room\\m_wall_3.1.jpg",
+          "master_bed_room\\m_wall_3.2.jpg",
+          "master_bed_room\\m_wall_3.3.jpg",
+          "master_bed_room\\m_wall_3.4.jpg",
+          "master_bed_room\\m_wall_3.5.jpg"
+        ],
+        "n_evidence_photos": 5
+      },
+      {
+        "index": 4,
+        "length_m": 3.28,
+        "from_vertex": "V3",
+        "to_vertex": "V0",
+        "outward_normal_ab": [
+          -1.0,
+          -0.0
+        ],
+        "evidence_photos": [
+          "master_bed_room\\m_wall_4.1.jpg",
+          "master_bed_room\\m_wall_4.2.jpg",
+          "master_bed_room\\m_wall_4.3.jpg",
+          "master_bed_room\\m_wall_4.4.jpg"
+        ],
+        "n_evidence_photos": 4
+      }
+    ]
+  },
+  "coordinate_frame": {
+    "basis_a_world": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "basis_b_world": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "up_world": [
+      0.0,
+      0.0,
+      1.0
+    ],
+    "origin": "room corner V0",
+    "note": "Defined by the tape layout, not by a sensor frame, so there is no compass direction and no north arrow is drawn."
+  },
+  "quality": {
+    "floor_area_m2": 12.2016,
+    "perimeter_m": 14.0,
+    "edge_lengths_m": [
+      3.72,
+      3.28,
+      3.72,
+      3.28
+    ],
+    "ceiling_height_m": 2.57,
+    "room_aspect": 1.1341
+  },
+  "uncertainty": {
+    "wall_position_1sigma_m": [
+      0.005,
+      0.005,
+      0.005,
+      0.005
+    ],
+    "source": "tape reading uncertainty, not a pipeline residual",
+    "floor_area_1sigma_m2": 0.07
+  },
+  "openings": [
+    {
+      "kind": "door",
+      "width_m": 0.8,
+      "height_m": 2.0
+    },
+    {
+      "kind": "window",
+      "width_m": 1.45,
+      "height_m": 1.2
+    }
+  ],
+  "opening_evidence": {
+    "door_photos": [
+      "master_bed_room\\m_door.jpg"
+    ],
+    "note": "Opening sizes are tape readings. Photographs are attached as evidence but were not used to derive the dimensions."
+  },
+  "damage": [],
+  "diagonal_consistency": {
+    "measured_m": 4.92,
+    "predicted_from_sides_m": 4.9595,
+    "difference_mm": -39.5
+  },
+  "notes": [
+    "Wall numbers follow the photographer's filenames. That they run clockwise around the room was never confirmed, so wall 1 may not be physically adjacent to wall 2 in the drawing. Lengths are unaffected."
+  ],
+  "confidence": {
+    "dimensional": {
+      "score_pct": 100.0,
+      "met": 2,
+      "total": 2,
+      "conditions": [
+        {
+          "condition": "dimensions from steel tape",
+          "met": true,
+          "detail": "+/-5 mm on each side"
+        },
+        {
+          "condition": "diagonal self-consistent (-40 mm)",
+          "met": true,
+          "detail": "measured vs predicted from sides"
+        }
+      ]
+    },
+    "photographic_corroboration": {
+      "score_pct": 60.0,
+      "met": 3,
+      "total": 5,
+      "conditions": [
+        {
+          "condition": "every wall has a photograph (4/4)",
+          "met": true,
+          "detail": "wall photos labelled in the filename"
+        },
+        {
+          "condition": "ceiling photographed",
+          "met": true,
+          "detail": "enables an independent height check"
+        },
+        {
+          "condition": "door photographed",
+          "met": true,
+          "detail": "enables an opening cross-check"
+        },
+        {
+          "condition": "no scale reference in any frame",
+          "met": false,
+          "detail": "photo tier cannot be metric on its own"
+        },
+        {
+          "condition": "wall numbering order unconfirmed",
+          "met": false,
+          "detail": "affects adjacency, not lengths"
+        }
+      ]
+    },
+    "overall_note": "Dimensional confidence is high and photographic corroboration is low. These are not averaged: the plan's dimensions come from the tape, and the photographs corroborate surfaces without having been measured against them."
+  }
+}

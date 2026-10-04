@@ -33,10 +33,10 @@ Last updated 2026-10-04. All figures reproducible with the commands in
 | # | Requirement | Status | Evidence | Notes |
 |---|---|---|---|---|
 | 3.1 | Dimensioned floor plan, machine readable | **Met** | `src/scan2plan/report.py`, `scan2plan-plan` | JSON with per-wall 1σ. |
-| 3.2 | Dimensioned floor plan, visual | **Met** | `examples/syn_nominal.svg`, `out/field/*.svg` | ASCII-only glyphs, 1 m scale bar, no north arrow (the frame has no compass direction). |
+| 3.2 | Dimensioned floor plan, visual | **Met** | `examples/syn_nominal.svg`, `examples/field_site/*.svg` | ASCII-only glyphs, 1 m scale bar, no north arrow (the frame has no compass direction). |
 | 3.3 | Per-wall uncertainty | **Met** | `runs/synthetic_benchmark.json` | `rms / sqrt(support)`. |
 | 3.4 | Openings: doors, windows | **Prototype** | `scripts/analyse_openings_and_damage.py` | Detector returns the largest near region spanning the frame, which is the whole frame. Widths land 2.4× the tape figure. Reported unreliable, not shipped as working. |
-| 3.5 | Room dimensions, real site | **Met** via tape | `out/field/`, `scripts/report_field_capture.py` | Geometry is **measured**, not reconstructed. Every document carries `geometry_is_measured_not_reconstructed: true`. |
+| 3.5 | Room dimensions, real site | **Met** via tape | `examples/field_site/`, `scripts/report_field_capture.py` | Geometry is **measured**, not reconstructed. Every document carries `geometry_is_measured_not_reconstructed: true`. |
 
 ## 4. Damage
 
