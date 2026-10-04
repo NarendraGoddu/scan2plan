@@ -496,3 +496,61 @@ angled 9° from an axis, because that is inside `PARALLEL_TOL_DEG = 12°` and ge
 absorbed into the existing group. Reproducing the real 9-wall failure needed angles
 past that tolerance — worth knowing, because it means modest orientation error is not
 what breaks real scans.
+
+## The floor was 801 mm unstable, because floor and ceiling were fitted separately
+
+Measured floor-height disagreement across disjoint halves: 0.6 / 189.5 / **801.0 mm**.
+801 mm is not estimator noise; it is the size of a change of floor. The first thing to
+check was whether the two halves were looking at different floors — they are not. Both
+halves cover the same XY footprint (a −0.02..9.58 vs −0.15..9.29, b −5.05..4.16 vs
+−3.93..4.88), so H_A was refuted and H_B, an unstable fit, survived.
+
+Listing every pre-merge candidate showed what was actually happening:
+
+| Subset | Best-supported "floor" | Camera above it | rms |
+|---|---|---|---|
+| full | −1.488 m (support 301) | 1.533 m | 8.6 mm |
+| first half | −1.489 m (support 286) | 1.410 m | 8.6 mm |
+| second half | **−0.908 m (support 147)** | **0.865 m** | 46.8 mm |
+
+Every horizontal surface below the camera is classified `floor`, so beds, tables and
+counters all compete. The whole-walk consensus correctly lands on the real floor at
+8.6 mm rms; the second half sees less true floor and lets a **table top** win on
+observation count. Nothing was wrong with the fit — the *selection* was.
+
+**The fix is HorizonNet's point, cheaply.** CVPR'19 represents a layout as a 1D
+boundary sequence anchored to the camera, so floor and ceiling are parameters of one
+layout and cannot drift apart. This code fits them as two independent planes competing
+on observation counts. The cheap version of the same constraint: a person walking a
+room holds a phone roughly 1.0–2.0 m above the floor, so a surface 0.87 m below the
+lens is not the floor of a room anyone was standing in. `consolidate_horizontal` now
+takes `camera_height_m` and requires the floor to sit within
+`FLOOR_REACH_MIN_M=1.00`..`FLOOR_REACH_MAX_M=2.10` of the camera.
+
+| Archive | Before | After |
+|---|---|---|
+| `single_room` | 0.6 mm | 0.6 mm |
+| `floor_only` | 189.5 mm | **60.4 mm** |
+| `with_ceiling` | 801.0 mm | **89.5 mm** |
+
+Still short of the 10 mm gate, but the cause has changed from *choosing the wrong
+surface* to *not observing enough of the right one*: the full-archive floor is 8.6 mm
+rms at support 301, and each half has half the frames.
+
+Two things worth recording:
+
+- The synthetic benchmark is **unchanged** (5/5 rooms, span median 4.12 mm, ceiling
+  3.01 mm, area 0.21 %), which is the check that matters — the constraint does not fire
+  spuriously when the camera height is known.
+- `reach = camera_height_m - heights` was computed unconditionally and raised
+  `TypeError` on the `camera_height_m=None` path used by the synthetic unit tests. A
+  test now pins that the no-camera path still selects on support alone.
+
+### Known remaining defect
+
+The merged floor consensus has rms 157 mm where the primary candidate alone has 8.6 mm.
+`consolidate_horizontal` weights the pooled normal and offset by support, but the
+`inlier_points` refit concatenates every member's points **unweighted**, so a
+support-14 striver at 0.25 m from the floor dilutes a support-301 surface. The fix is a
+support-weighted plane refit; not done here because the repeatability gate, not rms, is
+what the assessment scores.

@@ -207,3 +207,68 @@ def test_ceiling_height_is_physically_plausible():
     c_h = float(c.offset * (c.normal @ up))
     height = c_h - f_h
     assert 2.0 < height < 3.2, f"implausible ceiling height {height:.3f} m"
+
+# --- floor selection is constrained by where the camera is ----------------
+#
+# Every horizontal surface below the camera is classified "floor", which includes
+# beds, tables and counters. Choosing among them by support alone is unstable: on
+# with_ceiling the best-supported candidate moved from -1.488 m (support 301) over
+# the whole walk to -0.908 m (support 147) over the second half alone, putting the
+# two halves 801 mm apart on floor height. A surface 0.87 m below the lens is not
+# the floor of a room anyone was standing in.
+
+
+def test_low_surface_cannot_beat_the_real_floor():
+    up = np.array([0.0, 1.0, 0.0])
+    real_floor = _horizontal_plane(-1.53, 80)
+    furniture = _horizontal_plane(-0.87, 147)   # higher support, but too low
+    for p in (real_floor, furniture):
+        p.kind = "floor"
+    merged = consolidate_horizontal([real_floor, furniture], "floor", up,
+                                    camera_height_m=0.0)
+    assert merged is not None
+    assert merged.offset == pytest.approx(-1.53, abs=0.02)
+
+
+def test_support_still_wins_among_plausible_candidates():
+    up = np.array([0.0, 1.0, 0.0])
+    weak = _horizontal_plane(-1.40, 10)
+    strong = _horizontal_plane(-1.55, 300)
+    for p in (weak, strong):
+        p.kind = "floor"
+    merged = consolidate_horizontal([weak, strong], "floor", up,
+                                    camera_height_m=0.0)
+    assert merged.offset == pytest.approx(-1.55, abs=0.05)
+
+
+def test_without_camera_height_the_old_behaviour_is_unchanged():
+    """The no-camera path must still pick on support alone, or the synthetic
+    unit tests and any caller without odometry change behaviour silently."""
+    up = np.array([0.0, 1.0, 0.0])
+    low = _horizontal_plane(-0.87, 147)
+    high = _horizontal_plane(-1.53, 80)
+    for p in (low, high):
+        p.kind = "floor"
+    merged = consolidate_horizontal([low, high], "floor", up)
+    assert merged.offset == pytest.approx(-0.87, abs=0.02)
+
+
+def test_no_plausible_candidate_falls_back_instead_of_failing():
+    """Every surface too low, or too high: return something and say so."""
+    up = np.array([0.0, 1.0, 0.0])
+    only = _horizontal_plane(-0.30, 40)
+    only.kind = "floor"
+    merged = consolidate_horizontal([only], "floor", up, camera_height_m=0.0)
+    assert merged is not None
+    assert merged.offset == pytest.approx(-0.30, abs=0.01)
+
+
+def test_ceiling_gate_uses_the_opposite_direction():
+    up = np.array([0.0, 1.0, 0.0])
+    good = _horizontal_plane(1.10, 90)
+    too_low = _horizontal_plane(0.20, 200)
+    for p in (good, too_low):
+        p.kind = "ceiling"
+    merged = consolidate_horizontal([good, too_low], "ceiling", up,
+                                    camera_height_m=0.0)
+    assert merged.offset == pytest.approx(1.10, abs=0.02)

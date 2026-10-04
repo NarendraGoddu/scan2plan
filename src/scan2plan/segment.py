@@ -371,8 +371,33 @@ def flip_plane(p: Plane, v_new: np.ndarray) -> Plane:
     return p
 
 
+# How far below the camera the floor must be, in metres.
+#
+# Every horizontal surface under the camera is classified "floor", which includes
+# beds, tables, sofas and counters. Choosing among them by support alone is
+# unstable: on with_ceiling the best-supported candidate moves from -1.488 m
+# (support 301) over the whole walk to -0.908 m (support 147) over the second half
+# alone, because the halves do not see the same surfaces equally well. That put the
+# two halves 801 mm apart on the floor height.
+#
+# A person walking a room holds a phone roughly 1.0-1.8 m above the floor, so a
+# surface 0.87 m below the lens is not the floor of a room anyone was standing in.
+# This is the cheap version of the point HorizonNet (CVPR'19) makes properly: the
+# floor and ceiling are parameters of one layout, constrained by where the camera is
+# in it, not two independent plane fits competing on observation counts.
+FLOOR_REACH_MIN_M = 1.00
+FLOOR_REACH_MAX_M = 2.10
+
+# How far above the camera the ceiling may be. Looser at the bottom end because a
+# low ceiling over a doorway or alcove is legitimate, and the ceiling choice was
+# never the unstable one.
+CEILING_REACH_MIN_M = 0.30
+CEILING_REACH_MAX_M = 2.20
+
+
 def consolidate_horizontal(
-    planes: list[Plane], kind: str, up: np.ndarray, outlier_tol_m: float = 0.45
+    planes: list[Plane], kind: str, up: np.ndarray, outlier_tol_m: float = 0.45,
+    camera_height_m: float | None = None,
 ) -> Plane | None:
     """Reduce all planes of one kind (floor or ceiling) to a single surface.
 
@@ -394,10 +419,40 @@ def consolidate_horizontal(
     cands = [p for p in planes if p.kind == kind]
     if not cands:
         return None
-    cands.sort(key=lambda p: -p.support)
-    primary = cands[0]
 
     heights = np.array([float(p.offset * (p.normal @ u)) for p in cands])
+
+    # Reach is only meaningful when the camera height is known. Computing it
+    # unconditionally crashed the no-camera-height path, which the synthetic
+    # unit tests use.
+    plausible = None
+    if camera_height_m is not None:
+        reach = camera_height_m - heights  # + = surface below the camera
+        if kind == "floor":
+            lo, hi = FLOOR_REACH_MIN_M, FLOOR_REACH_MAX_M
+            plausible = (reach >= lo) & (reach <= hi)
+        else:
+            lo, hi = CEILING_REACH_MIN_M, CEILING_REACH_MAX_M
+            plausible = (reach <= -lo) & (reach >= -hi)
+
+    rejected: list[str] = []
+    if plausible is not None and plausible.any():
+        pool = [p for p, ok in zip(cands, plausible) if ok]
+        for p, ok, r in zip(cands, plausible, reach):
+            if not ok:
+                rejected.append(
+                    f"{p.offset * (p.normal @ u):+.3f} m "
+                    f"(support {p.support}, camera {abs(r):.2f} m "
+                    f"{'below' if kind == 'floor' else 'above'} it)"
+                )
+        cands = pool
+        heights = np.array([float(p.offset * (p.normal @ u)) for p in cands])
+        primary = max(cands, key=lambda p: p.support)
+    else:
+        if plausible is not None:
+            rejected.append("none")
+        cands.sort(key=lambda p: -p.support)
+        primary = cands[0]
     p_height = float(primary.offset * (primary.normal @ u))
     within = np.abs(heights - p_height) <= outlier_tol_m
 
@@ -495,8 +550,10 @@ def segment_capture(
     planes = classify_planes(planes, u, cam_h)
 
     # Impose the room structure: one floor, one ceiling. See consolidate_horizontal.
+    # cam_h is passed so the floor can be required to sit a plausible distance below
+    # the camera, which is what stops furniture tops winning on observation count.
     for kind in ("floor", "ceiling"):
-        merged = consolidate_horizontal(planes, kind, u)
+        merged = consolidate_horizontal(planes, kind, u, camera_height_m=cam_h)
         if merged is None:
             continue
         planes = [p for p in planes if p.kind != kind]

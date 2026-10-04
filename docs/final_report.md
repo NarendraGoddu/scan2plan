@@ -198,6 +198,37 @@ that four photos share a wall lets us pick the best of four bad views; it cannot
 manufacture a good one. See `scripts/wall_perspective_consensus.py` and
 `scripts/diag_wall_perspectives.py`.
 
+**The floor height was unstable by 801 mm, and the cause was that floor and ceiling
+were fitted as independent planes.** Every horizontal surface below the camera gets
+classified "floor", which includes beds, tables and counters. The consensus was then
+chosen by observation count alone — and the count moves with the frame subset:
+
+| Subset | Best-supported "floor" | Camera above it | Verdict |
+|---|---|---|---|
+| whole walk | −1.488 m (support 301, rms 8.6 mm) | 1.533 m | the real floor |
+| first half | −1.489 m (support 286, rms 8.6 mm) | 1.410 m | the real floor |
+| second half | **−0.908 m (support 147)** | **0.865 m** | a table top |
+
+The second half never saw enough true floor to out-vote the furniture. The fix is the
+cheap version of a point HorizonNet (CVPR'19) makes properly: **the floor is a
+parameter of the layout, constrained by where the camera is in it, not a free plane
+competing on observation counts.** A surface 0.87 m below the lens is not the floor of
+a room anyone was standing in, so `consolidate_horizontal` now requires the floor to sit
+1.00–2.10 m below the camera and picks the best-supported candidate among those.
+
+| Archive | Before | After |
+|---|---|---|
+| `single_room` | 0.6 mm | 0.6 mm |
+| `floor_only` | 189.5 mm | **60.4 mm** |
+| `with_ceiling` | 801.0 mm | **89.5 mm** |
+
+Still above the 10 mm gate, and the reason is now different: not selection, but
+observability. The full-archive floor is excellent (8.6 mm rms, support 301); each
+half simply has half the frames, so its consensus is built from fewer observations.
+The synthetic benchmark is unchanged — 5/5 rooms, span median 4.12 mm, ceiling 3.01 mm,
+area 0.21 % — confirming the constraint does not fire spuriously when the camera height
+is known.
+
 **Room boundary selection fails on real data, and an explicit assumption fixes it.**
 On the sample archives the pipeline reports 9, 6 and 8 walls where a rectangle has 4,
 with edge lengths down to 0.166 m — noise fragments promoted to boundary walls. The
@@ -369,3 +400,30 @@ See [`compliance_matrix.md`](compliance_matrix.md) — 35 requirements: **24 Met
 Two of the 24 are qualified: the room-polygon requirement is Met on synthetic data
 and fails on real archives, and the reference benchmark is a substitute for a
 Magicplan comparison that was not performed. Strip those and it is 22 unqualified.
+
+## 11. Prior work consulted
+
+Recorded because two specific decisions in this report came from elsewhere, and a
+reviewer checking them should be able to check the source.
+
+- **HorizonNet** (Zhang et al., CVPR 2019) — room layout as a 1D boundary sequence
+  anchored to the camera, so floor and ceiling are parameters of one layout rather than
+  independent plane fits. That distinction is the whole content of §5's floor finding,
+  and the fix here is a deliberately cheap version of it: a camera-height reach
+  constraint on floor selection, with no learning and no 1D parameterisation.
+  <https://github.com/sunset1995/HorizonNet>
+- **LED²-Net** (Wang et al., CVPR 2021 Oral) — monocular layout by differentiable depth
+  rendering: resolve depth ambiguity by rendering a hypothesis and scoring it against
+  the image, instead of trusting one depth map. Cited as the correct treatment of the
+  problem this report documents as unsolved, namely why the photo tier cannot be metric.
+  Not implemented — it needs PyTorch, a 360° panorama and Matterport3D-scale training
+  data. <https://github.com/fuenwang/LED2-Net>
+- **FloorSAM** — LiDAR floor-plan reconstruction by fusing a point-density map with
+  zero-shot SAM segmentation. **Contains no code**; its README states the release is
+  pending paper acceptance. Consulted as prior art only, and the density-map idea is
+  the most promising unexplored direction for the wall-selection problem in §5.
+  <https://github.com/Silentbarber/FloorSAM>
+
+Searched 2026-10-04 via the GitHub API. The learned methods above are materially ahead
+of this pipeline at layout estimation; they also require training data and a GPU, while
+this runs training-free on CPU in 7 s offline. That is a trade-off, not parity.
