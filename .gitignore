@@ -12,6 +12,7 @@ data/raw/
 
 out/
 runs/
+docs/_tmp/
 *.npz
 *.npy
 
