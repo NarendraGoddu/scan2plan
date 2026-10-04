@@ -416,9 +416,8 @@ immediately around the opening cannot be dragged by the opening it surrounds.
 | `main_hall` | 1.234 × 1.873 m | 1.03 × 2.09 m | +204 mm | −217 mm |
 
 **Heights pass the 20 mm gate on two of three doors. Widths pass on none.** The
-width bias is systematic and explained: the mask includes the door reveal, the few
-centimetres of jamb that genuinely belong to the opening. `main_hall` is flagged, not
-hidden — its two copies disagree by 430 mm.
+**Heights pass the 20 mm gate on two of three doors. Widths pass on none.** The 
+documented cause “mask includes the door reveal” was wrong: the margin is 1.0 m behind the wall, which strictly excludes a few-cm reveal. Sweeping the margin 0.2–2.5 m moves estimates <15 mm, and a perfect synthetic aperture with true 0.80 m measures 0.872 m (+72 mm), so the bias is a pixel-level property of the bbox extraction, not the reveal or the threshold.
 
 ### The one that was about method, not code
 

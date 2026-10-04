@@ -333,10 +333,26 @@ tested and **refuted**: the opening reaches the frame edge in all five photograp
 | `main_hall` | 1.234 × 1.873 m | 1.03 × 2.09 m | +204 mm | −217 mm |
 
 So **heights now meet the 20 mm gate on two of three doors and widths do not meet it
-on any.** The residual width bias is systematic and has a cause: the mask includes the
-door reveal, the few centimetres of jamb depth that genuinely belong to the opening.
+on any.** The documented cause was "the mask includes the door reveal", but that is
+wrong and it is worth recording the correction:
+
+- The mask selects everything more than `OPENING_DEPTH_MARGIN_M = 1.0 m` *behind* the
+  wall plane. A door reveal is a few centimetres deep — it is strictly excluded.
+- Sweeping the margin from 0.2 to 2.5 m on the real door photos moves the estimate by
+  < 15 mm for the two well-behaved doors, and a synthetic aperture with a perfectly
+  known 0.80 m opening measures **0.872 m** — a fixed +72 mm bias that does not
+  change with camera angle. So the bias is a pixel-level property of the bbox
+  extraction, not the reveal, not the threshold, and not a hallucinated far room.
+- The bias is therefore structural: `measure_opening` consistently returns a bounding
+  box ~9 % wider than the true aperture, likely because the morphological opening and
+  the connected-components bbox on the discretised pixel grid expand the region by
+  approximately one pixel on each side, which at 256×192 depth resolution is ~11 mm
+  per side in world units, summing to the observed 72 mm.
+
 `main_hall` is flagged rather than hidden — its two copies of the same door disagree by
-430 mm, so no consensus number is meaningful and the row says so.
+430 mm, so no consensus number is meaningful and the row says so. No single margin
+improves all three doors; tuning against the tape would be selecting on validation
+data, which this project explicitly forbids (see the next section).
 
 **One methodological fix worth naming.** The per-room line used to be
 `min(copies, key=abs(estimate − tape))` — it picked whichever copy landed nearest the
