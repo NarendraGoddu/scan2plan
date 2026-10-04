@@ -216,6 +216,94 @@ def merge_wall_fragments(walls: list[Wall]) -> list[Wall]:
     return kept
 
 
+# How far the camera path may cross a wall line before that wall is called
+# interior to the room. The operator's head wanders and the operator walks right
+# up to walls, so a line clipping the *edge* of the path is a real wall. A line
+# passing through the *middle* of it is furniture in the middle of the room.
+WALL_CROSS_SLACK_M = 0.5
+
+# A wall in this orientation group must stand at least this far outside the
+# camera path to count as the room boundary in that direction.
+WALL_OUTSIDE_SLACK_M = 0.15
+
+
+def select_room_boundary(
+    walls: list[Wall], cam_ab: np.ndarray
+) -> tuple[list[Wall], list[str]]:
+    """Keep only the planes that actually bound the room.
+
+    Every plane within VERTICAL_TOL_DEG of vertical is currently labelled a wall,
+    which is harmless in an empty synthetic room and wrong in a real one: beds,
+    wardrobes, doors, curtains and kitchen units all qualify. Feeding them to the
+    half-plane intersection cuts the room down to a polygon far smaller than the
+    room, which is exactly what happened -- 1.75 m2 reported for a room whose
+    trajectory spans 17.3 m2.
+
+    Two physical facts separate a wall from an object in the room:
+
+      1. A room boundary has the camera path entirely on one side. An object in
+         the middle of the room has the path on both sides. So a wall whose line
+         crosses the interior of the path by more than the slack is discarded.
+      2. Within one orientation group -- walls seen as parallel -- the room is
+         bounded by the two outermost walls. Anything between them is closer to
+         the camera than the room is wide, so it is furniture or an interior
+         partition, not an outside wall.
+
+    Returns the surviving walls and a human-readable note per rejection, so the
+    report can say what was discarded rather than silently changing the answer.
+    """
+    if len(walls) < 3:
+        return list(walls), []
+    cam = np.asarray(cam_ab, dtype=np.float64).reshape(-1, 2)
+    notes: list[str] = []
+
+    spanning: list[Wall] = []
+    for w in walls:
+        d = cam @ w.normal - w.offset
+        if d.min() < -WALL_CROSS_SLACK_M and d.max() > WALL_CROSS_SLACK_M:
+            notes.append(
+                f"discarded wall at offset {w.offset:+.2f} m (support {w.support}): "
+                f"camera path crosses it, so it is inside the room, not a boundary"
+            )
+            continue
+        spanning.append(w)
+
+    if len(spanning) < 3:
+        return spanning, notes
+
+    # Group by orientation, modulo 180 degrees: opposite walls of a rectangular
+    # room are parallel and must be considered together.
+    cos_tol = math.cos(math.radians(PARALLEL_TOL_DEG))
+    groups: list[list[Wall]] = []
+    for w in sorted(spanning, key=lambda x: -x.support):
+        for g in groups:
+            if abs(float(g[0].normal @ w.normal)) >= cos_tol:
+                g.append(w)
+                break
+        else:
+            groups.append([w])
+
+    kept: list[Wall] = []
+    for g in groups:
+        if len(g) == 1:
+            kept.append(g[0])
+            continue
+        # Reference direction for this group, then order by signed position along
+        # it so "outermost on each side" is a well-defined notion.
+        ref = g[0].normal / np.linalg.norm(g[0].normal)
+        ranked = sorted(g, key=lambda w: w.offset * float(np.sign(ref @ w.normal) or 1.0))
+        for w in (ranked[0], ranked[-1]):
+            if not any(w is k for k in kept):
+                kept.append(w)
+        for w in ranked[1:-1]:
+            notes.append(
+                f"discarded parallel wall at offset {w.offset:+.2f} m "
+                f"(support {w.support}): lies between the outermost walls of its "
+                f"orientation, so it is interior to the room"
+            )
+    return kept, notes
+
+
 def intersect_halfplanes(walls: list[Wall], interior: np.ndarray) -> np.ndarray | None:
     """Intersect the interior half-planes, returning polygon vertices.
 
@@ -308,6 +396,9 @@ def build_room_plan(
         return plan
 
     walls = merge_wall_fragments(raw)
+    cam_ab = np.column_stack([pos @ a, pos @ b])
+    walls, discard_notes = select_room_boundary(walls, cam_ab)
+    plan.notes.extend(discard_notes)
     plan.walls = walls
 
     poly = intersect_halfplanes(walls, interior)
