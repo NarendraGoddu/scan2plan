@@ -14,8 +14,13 @@ data/raw/
 out/
 runs/
 docs/_tmp/
+scripts/capture_inventory.json
 *.npz
 *.npy
 
 # Synthetic archives are ~136 MB and regenerate deterministically from synth.py
 data/synthetic/*.zip
+
+# Downloaded neural-network weights (~99 MB) are fetched by
+# scripts/fetch_depth_model.py, never committed.
+.models/

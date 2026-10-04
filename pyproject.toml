@@ -27,6 +27,15 @@ analysis = [
     "pytest>=7.4",
 ]
 
+# Monocular depth from photos and video (see scan2plan.monodepth). ONNX Runtime
+# rather than PyTorch: this is a CPU-only path, the runtime is ~15 MB against a
+# multi-gigabyte torch install, and it keeps the core dependency set untouched.
+# The 99 MB model itself is downloaded separately, not installed.
+depth = [
+    "onnxruntime>=1.17",
+    "opencv-python-headless>=4.9",
+]
+
 [project.scripts]
 scan2plan-plan = "scan2plan.cli:main"
 
