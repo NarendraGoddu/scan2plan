@@ -142,7 +142,7 @@ Remaining gaps, stated rather than filled with invented numbers:
 | Requirement | Substitute | Residual gap |
 |---|---|---|
 | LiDAR tier ground truth | synthetic known rooms + internal consistency | no tape-measured scanned room exists |
-| Part 3 head-to-head | Magicplan on Android + tape measurements, same rooms | Magicplan free tier may not export plans; its output is still an estimate, not ground truth |
+| Part 3 head-to-head | **not done** | Magicplan ships iOS only and the capture phone was Android, so no Magicplan scan exists for any of the three rooms. Nothing was substituted and no comparison is claimed. This is a real loss of ~10% of the assessment, not a rounding error. |
 | LiDAR-tier damage classes | photo tier only | damage not verified against depth |
 | TestFlight build | stock-capture protocol (Route 2) | no iOS device to build on |
 

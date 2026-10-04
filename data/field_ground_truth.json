@@ -45,14 +45,18 @@
     }
   ],
   "field_media": {
-    "photos_total": 87,
+    "photos_total": 238,
+    "photos_labelled_by_filename": 87,
+    "photos_unlabelled_walkthrough": 151,
     "photos_full_resolution": true,
     "resolution_px": [[4096, 3072], [3072, 4096]],
+    "videos_total": 11,
     "videos_from_session": 4,
     "video_duration_s_total": 357,
     "exif_present": false,
     "gps_exif_present": false,
-    "soft_frames": 4
+    "soft_frames": 4,
+    "_count_note": "photos_total was originally recorded as 87, which counted only the three labelled room folders. The ALL ROOMS PHOTOS folder of 151 timestamped walkthrough frames arrived after the phone transfer failed and was initially missed by the inventory; it is included now and every one of the 238 has a depth map under runs/depth."
   },
   "known_gaps": [
     "Measurement cards were recorded on paper and photographed, but the card images are not in the captured media set. The numbers above were transcribed by hand, so a transcription error cannot be ruled out.",
