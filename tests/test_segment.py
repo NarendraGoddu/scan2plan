@@ -272,3 +272,70 @@ def test_ceiling_gate_uses_the_opposite_direction():
     merged = consolidate_horizontal([good, too_low], "ceiling", up,
                                     camera_height_m=0.0)
     assert merged.offset == pytest.approx(1.10, abs=0.02)
+
+
+# --- support-weighted pooled refit ----------------------------------------
+
+
+def _member(offset, support, n_points, spread=2.0, seed=0):
+    """A floor member at `offset` carrying `support` votes and `n_points` points."""
+    rng = np.random.default_rng(seed)
+    pts = np.column_stack([
+        rng.uniform(-spread, spread, n_points),
+        np.full(n_points, offset),
+        rng.uniform(-spread, spread, n_points),
+    ])
+    return Plane(normal=np.array([0.0, 1.0, 0.0]), offset=offset, support=support,
+                 n_frames_total=100, rms_m=0.01, kind="floor", inlier_points=pts)
+
+
+def test_pooled_refit_is_weighted_by_support_not_by_point_count():
+    """The discriminating case: support and point count deliberately disagree.
+
+    `good` carries 300 votes over 30 points (9000 weight units); `noisy` carries 5
+    votes over 400 points (2000 units). So a point-count objective would put 93% of
+    the weight on `noisy` and land near -1.304, while a support objective puts 82% on
+    `good` and lands near -1.423. Both members sit within `outlier_tol_m` of the
+    primary, so both are kept and the two objectives genuinely compete.
+    """
+    up = np.array([0.0, 1.0, 0.0])
+    merged = consolidate_horizontal(
+        [_member(-1.45, 300, 30, seed=1), _member(-1.30, 5, 400, seed=2)],
+        "floor", up,
+    )
+    assert merged is not None
+    point_count_answer = (30 * -1.45 + 400 * -1.30) / 430
+    assert point_count_answer == pytest.approx(-1.3105, abs=1e-3)
+    # The support-weighted answer is (9000*-1.45 + 2000*-1.30)/11000 = -1.4227, so
+    # the two objectives are 112 mm apart -- comfortably resolvable.
+    support_answer = (9000 * -1.45 + 2000 * -1.30) / 11000
+    assert merged.offset == pytest.approx(support_answer, abs=0.01)
+    assert abs(merged.offset - point_count_answer) > 0.05
+    # And it is the better-supported member that won.
+    assert abs(merged.offset - (-1.45)) < abs(merged.offset - (-1.30))
+
+
+def test_pooled_refit_stays_conditioned_when_points_are_far_from_the_origin():
+    """Guards the -13.5 m regression.
+
+    Scaling rows by sqrt(support) before an SVD is algebraically the same objective,
+    but it moves points ~1.5 m from the origin out to ~26 m while the spread that
+    defines the plane stays ~0.05 m, and the float64 error in that direction lands
+    straight in the offset. Building the weighted covariance explicitly avoids it.
+    """
+    up = np.array([0.0, 1.0, 0.0])
+    members = [
+        _member(-1.45, 3000, 80, spread=6.0, seed=3),
+        _member(-1.38, 7, 300, spread=6.0, seed=4),
+        _member(-1.51, 11, 200, spread=6.0, seed=5),
+    ]
+    merged = consolidate_horizontal(members, "floor", up)
+    assert merged is not None
+    # A 13.5 m excursion or a multi-metre rms is the failure this replaced.
+    assert abs(merged.offset) < 3.0
+    assert np.isfinite(merged.offset)
+    assert merged.rms_m < 0.5
+    # The normal must keep the orientation agreed by the member normals: eigh fixes
+    # no sign, so the refit has to resolve it explicitly.
+    assert merged.normal @ up == pytest.approx(1.0, abs=1e-6)
+

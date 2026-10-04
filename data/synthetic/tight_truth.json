@@ -16,6 +16,7 @@
       "v1": 2.0
     }
   ],
+  "damage": [],
   "scan_id": "syn_tight",
   "n_frames": 720,
   "seed": 7,

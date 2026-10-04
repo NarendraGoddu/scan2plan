@@ -477,11 +477,40 @@ def consolidate_horizontal(
         for p, keep in zip(cands, within, strict=False)
         if keep and p.inlier_points.size
     ]
+    # Same filter as `pooled`, so the per-point weights below cannot drift out of
+    # correspondence with the point blocks. `w` itself is kept as the wider filter
+    # (keep only) because it also defines the reported support.
+    pool_w = np.array(
+        [
+            p.support
+            for p, keep in zip(cands, within, strict=False)
+            if keep and p.inlier_points.size
+        ],
+        dtype=np.float64,
+    )
     pooled_arr = np.concatenate(pooled, axis=0) if pooled else np.zeros((0, 3))
     if pooled_arr.shape[0] >= 60:
-        centroid = pooled_arr.mean(0)
-        _, _, vt = np.linalg.svd(pooled_arr - centroid, full_matrices=False)
-        n2 = orthonormalize(vt[2])
+        # Support-weighted refit, built as an explicit covariance rather than by
+        # scaling rows before an SVD. Scaling by sqrt(support) is the same objective
+        # algebraically but ruinously conditioned here: the points sit ~1.5 m from
+        # the origin, so the scaling moves them to ~26 m while the spread that
+        # defines the plane stays ~0.05 m, leaving a smallest singular value that is
+        # a variance ratio of order 1e5 and pushing the float64 rounding error in
+        # that direction straight into the offset (measured: -13.5 m, rms 7082 mm).
+        # Forming C = sum_i w_i (p_i - c)(p_i - c)^T keeps every operation in the
+        # frame the points already occupy, so no amplification happens.
+        point_w = np.repeat(pool_w, [len(b) for b in pooled])
+        wsum = max(point_w.sum(), 1e-9)
+        centroid = np.average(pooled_arr, axis=0, weights=point_w)
+        centred = pooled_arr - centroid
+        cov = (centred * point_w[:, None]).T @ centred / wsum
+        # eigh returns eigenvalues ascending, so column 0 is the normal.
+        _, evecs = np.linalg.eigh(cov)
+        n2 = orthonormalize(evecs[:, 0])
+        # eigh fixes no sign; align with the normal already agreed by the weighted
+        # average above so the merged plane keeps the orientation of its members.
+        if n2 @ n < 0:
+            n2 = -n2
         d2 = float(n2 @ centroid)
         resid = np.abs(pooled_arr @ n2 - d2)
         offset, n, rms = d2, n2, float(np.sqrt(np.mean(resid**2)))

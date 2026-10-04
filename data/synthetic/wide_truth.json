@@ -16,6 +16,7 @@
       "v1": 2.1
     }
   ],
+  "damage": [],
   "scan_id": "syn_wide",
   "n_frames": 720,
   "seed": 7,

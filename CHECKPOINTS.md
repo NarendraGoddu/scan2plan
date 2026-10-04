@@ -527,15 +527,17 @@ lens is not the floor of a room anyone was standing in. `consolidate_horizontal`
 takes `camera_height_m` and requires the floor to sit within
 `FLOOR_REACH_MIN_M=1.00`..`FLOOR_REACH_MAX_M=2.10` of the camera.
 
-| Archive | Before | After |
-|---|---|---|
-| `single_room` | 0.6 mm | 0.6 mm |
-| `floor_only` | 189.5 mm | **60.4 mm** |
-| `with_ceiling` | 801.0 mm | **89.5 mm** |
+| Archive | Before | After reach gate | After weighted covariance |
+|---|---|---|---|
+| `single_room` | 0.6 mm | 0.6 mm | 0.8 mm |
+| `floor_only` | 189.5 mm | 60.4 mm | **21.2 mm** |
+| `with_ceiling` | 801.0 mm | 89.5 mm | **68.4 mm** |
 
 Still short of the 10 mm gate, but the cause has changed from *choosing the wrong
-surface* to *not observing enough of the right one*: the full-archive floor is 8.6 mm
-rms at support 301, and each half has half the frames.
+surface* to *not observing enough of the right one*, and then partly to *weighting the
+pooled fit wrongly*: the full-archive floor is 8.6 mm rms at support 301, and each half
+has half the frames. The second column is the reach gate; the third is the
+support-weighted pooled refit described at the end of this section.
 
 Two things worth recording:
 
@@ -567,10 +569,45 @@ wrong order of operations.
 
 The correct construction is to build the weighted covariance explicitly,
 `C = Σ_i w_i (p_i − c)(p_i − c)ᵀ`, and take its smallest eigenvector, which never
-leaves the well-conditioned coordinate frame the points are already in. That is a
-rewrite of the refit rather than a two-line change, and it has no test that would catch
-a silent regression, so it is left undone and recorded here instead. The gate that
-matters for the assessment is split-half repeatability, not rms.
+leaves the well-conditioned coordinate frame the points are already in.
+
+**Implemented, and it is a real improvement.** `segment.py` now does exactly that:
+`point_w = np.repeat(pool_w, [len(b) for b in pooled])`, a weighted centroid via
+`np.average`, then `cov = (centred * point_w[:, None]).T @ centred / wsum` and
+`np.linalg.eigh(cov)`. Measured split-half floor repeatability:
+
+| archive | after reach gate | after weighted covariance |
+|---|---|---|
+| `single_room` | 0.6 mm | 0.8 mm |
+| `floor_only` | 60.4 mm | **21.2 mm** |
+| `with_ceiling` | 89.5 mm | **68.4 mm** |
+
+The 10 mm gate still fails on the two LiDAR archives, so this does not close it, but
+`floor_only` improves by 2.8x and `with_ceiling` by 1.3x. The synthetic benchmark is
+unregressed (wall length 4.12 mm, ceiling height 3.01 mm, floor area 0.21%).
+
+Two things the fix had to get right beyond the covariance itself:
+
+- **Sign.** `eigh` fixes no sign, so `n2` can come back pointing either way and the
+  merged plane would inherit a reversed normal. Resolved by aligning with the
+  support-weighted normal already agreed above.
+- **Weight/point correspondence.** `w` filters members on `keep` alone while the
+  point blocks filter on `keep AND inlier_points.size`. Any kept plane with empty
+  `inlier_points` therefore shifted the two lists apart, so the weights described
+  different planes than the points. `pool_w` is now built from the same filter as the
+  point blocks; `w` keeps the wider filter because it also defines reported support.
+
+Two tests guard this in `tests/test_segment.py`. The weighting test gives the
+*low*-support plane 13x more points than the high-support one, so support and point
+count disagree and a point-count objective would answer −1.3105 where the support
+objective answers −1.4227; the test asserts the latter and that they differ by more
+than 50 mm. The conditioning test reproduces the original geometry — points ~6 m from
+the origin, a 3000:7 support ratio — and asserts the offset stays finite and inside
+3 m with rms below 0.5 m, which is what −13.5 m at rms 7082 mm would have failed.
+
+The gate that matters for the assessment is split-half repeatability, not rms, and it
+is still open. The remaining variance is no longer the pooled fit: it is plane
+*selection* and how few observations each half has of a given floor patch.
 
 ## Damage detection: measured failure, and the two limits that cause it
 

@@ -216,11 +216,11 @@ competing on observation counts.** A surface 0.87 m below the lens is not the fl
 a room anyone was standing in, so `consolidate_horizontal` now requires the floor to sit
 1.00–2.10 m below the camera and picks the best-supported candidate among those.
 
-| Archive | Before | After |
-|---|---|---|
-| `single_room` | 0.6 mm | 0.6 mm |
-| `floor_only` | 189.5 mm | **60.4 mm** |
-| `with_ceiling` | 801.0 mm | **89.5 mm** |
+| Archive | Before | After reach gate | After weighted covariance |
+|---|---|---|---|
+| `single_room` | 0.6 mm | 0.6 mm | 0.8 mm |
+| `floor_only` | 189.5 mm | 60.4 mm | **21.2 mm** |
+| `with_ceiling` | 801.0 mm | 89.5 mm | **68.4 mm** |
 
 Still above the 10 mm gate, and the reason is now different: not selection, but
 observability. The full-archive floor is excellent (8.6 mm rms, support 301); each
@@ -228,6 +228,29 @@ half simply has half the frames, so its consensus is built from fewer observatio
 The synthetic benchmark is unchanged — 5/5 rooms, span median 4.12 mm, ceiling 3.01 mm,
 area 0.21 % — confirming the constraint does not fire spuriously when the camera height
 is known.
+
+**A second defect in the same function, found while auditing the first.** The reach
+gate weighted the pooled normal and offset by support, but the pooled *point* refit
+concatenated every member's points unweighted — so a support-14 striver 0.25 m off the
+floor counted as much as the support-301 floor. The obvious fix, scaling each member's
+block by `sqrt(support)`, is the correct weighted-least-squares objective and made
+things far worse: floor −13.48 m at rms 7082 mm, against −1.5730 m at rms 157 mm. The
+weighting idea was fine and the *order of operations* was wrong. Those points sit
+~1.5 m from the origin, so `×17` moves them to ~26 m while the spread defining the
+plane stays ~0.05 m; the smallest singular value becomes a variance ratio of order
+10⁵ and the float64 error in that direction lands directly in the reported offset.
+
+Building the weighted covariance explicitly — `C = Σ wᵢ(pᵢ−c)(pᵢ−c)ᵀ`, smallest
+eigenvector — never leaves the frame the points already occupy, and gives the third
+column above. Fixing it also required resolving that `eigh` fixes no sign (the merged
+normal had to be aligned explicitly) and that the weight list and the point-block list
+were filtered differently, so any kept plane with empty `inlier_points` silently
+described a different plane than its points.
+
+This is the second time in this project that a plausible two-line fix was wrong for a
+non-obvious numerical reason, and both times the symptom was a *large* excursion rather
+than a small bias. Large excursions are cheap to notice; that is an argument for
+checking them against a baseline every time, not an argument for shipping without one.
 
 **Room boundary selection fails on real data, and an explicit assumption fixes it.**
 On the sample archives the pipeline reports 9, 6 and 8 walls where a rectangle has 4,

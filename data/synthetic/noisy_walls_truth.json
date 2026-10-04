@@ -16,6 +16,7 @@
       "v1": 2.05
     }
   ],
+  "damage": [],
   "scan_id": "syn_noisy_walls",
   "n_frames": 720,
   "seed": 7,
