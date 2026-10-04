@@ -3,13 +3,17 @@ __pycache__/
 .ipynb_checkpoints/
 
 # Raw captures are large and must not enter git history.
-# Fetch them with: python scripts/fetch_sample_data.py
 data/raw/
 *.zip
 *.mp4
+
+# ...except the demo archive, so a clean clone runs with no setup at all.
+!data/demo_room.zip
+
 out/
 runs/
 *.npz
 *.npy
+
 # Synthetic archives are ~136 MB and regenerate deterministically from synth.py
 data/synthetic/*.zip
